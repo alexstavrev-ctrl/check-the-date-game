@@ -338,7 +338,13 @@ function Activity(el,o){
   const view={tgt:new THREE.Vector3(),d:6,el:.24},tmp=new THREE.Vector3(),bb=new THREE.Box3(),bsz=new THREE.Vector3();
   const dirOf=e=>V(0,Math.sin(e),Math.cos(e));
   function placeAt(t,d,e){cam.position.copy(t).addScaledVector(dirOf(e),d);cam.lookAt(t);cam.updateMatrixWorld()}
-  const place=()=>placeAt(view.tgt,view.d,view.el);
+  /* ---------- the package hangs in space (the feel of the Fun Friday title: heavy, springy, a slow bob). A finger or the mouse on
+     the package pushes it back a little and it springs home when let go; a turn by hand keeps going and slows to a stop.
+     Less motion (calm): none of it. Only place() adds these, so every fit and measure sees the package at home. ---------- */
+  const PH={dip:0,dv:0,held:false,spin:null,t:0,last:0,drawn:0,off:false},phT=new THREE.Vector3();
+  const floatOn=()=>alive&&!!P&&doneV.hidden&&!document.hidden&&!PH.noFloat&&!E.still();
+  const place=()=>{if(PH.off||!(PH.dip||floatOn())){placeAt(view.tgt,view.d,view.el);return}
+    phT.copy(view.tgt);phT.y+=view.d*.0017*Math.sin(PH.t*.95);phT.x+=view.d*.0007*Math.sin(PH.t*.61+1.3);placeAt(phT,view.d*(1+PH.dip),view.el)};
   const W=()=>innerWidth,H=()=>innerHeight;
   const scr=p=>{tmp.copy(p).project(cam);return[(tmp.x+1)/2*W(),(1-tmp.y)/2*H()]};
   /* frame world points: half-size tw x th and centre (tcx, tcy), in NDC (-1..1). The viz dev's fit. */
@@ -429,13 +435,27 @@ function Activity(el,o){
   function shadowFit(){bb.setFromObject(P.group);bb.getSize(bsz);const s=Math.max(bsz.x,bsz.z)*1.6;shadow.scale.set(s,s,1);shadow.position.set((bb.min.x+bb.max.x)/2,bb.min.y-.002,(bb.min.z+bb.max.z)/2)}
   /* render only when something changes */
   function kick(){if(!raf&&alive)raf=requestAnimationFrame(frame)}
-  function frame(now){raf=0;if(!alive||!P)return;
+  function frame(now){raf=0;if(!alive||!P)return;const dt=Math.min(.2,Math.max(0,(now-(PH.last||now))/1000));PH.last=now;
     if(tw){const t=tw.dur>0?Math.min(1,(now-tw.t0)/tw.dur):1,e=1-Math.pow(1-t,3);
       pivot.quaternion.slerpQuaternions(tw.q0,tw.q1,e);view.tgt.lerpVectors(tw.v0.tgt,tw.v1.tgt,e);view.d=tw.v0.d*Math.pow(tw.v1.d/tw.v0.d,e);view.el=tw.v0.el+(tw.v1.el-tw.v0.el)*e;
       if(t>=1){const f=tw.done;tw=null;if(f)f()}}
-    draw();if(tw)kick()}
+    const mv=phStep(dt),fl=floatOn();if(fl)PH.t+=dt;
+    if(tw||mv||!fl||now-PH.drawn>=30){draw();PH.drawn=now}if(tw||mv||fl)kick()}
+  /* one step of the physics: the spin that keeps going after a turn by hand (it slows down, as if the air held it), and the
+     spring that pushes the package back while pressed and brings it home with a small bounce */
+  function phStep(dt){let mv=false;const s=PH.spin;
+    if(s){if(S.step!=='find'||ptr)PH.spin=null;else{const L=LEVELS[level],lim=L.drag?1.75:L.cross?Math.PI/2:0;
+      S.q.multiply(new THREE.Quaternion().setFromAxisAngle(AY,s.vs*dt));
+      if(lim&&s.vt){const t=tiltOf(S.q),nt=Math.max(-lim,Math.min(lim,t+s.vt*dt));if(nt===lim||nt===-lim)s.vt=0;S.q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,nt-t))}
+      pivot.quaternion.copy(S.q);const f=Math.exp(-dt/.36);s.vs*=f;s.vt*=f;
+      if(Math.hypot(s.vs,s.vt)<.1){PH.spin=null;turnTo(360)}else mv=true}}
+    const tg=PH.held&&!E.still()?.05:0;
+    if(PH.held||Math.abs(PH.dip-tg)>2e-4||Math.abs(PH.dv)>2e-3){const n=Math.max(1,Math.ceil(dt/.004)),h=dt/n,w=15,z=.42;
+      for(let i=0;i<n;i++){PH.dv+=(-w*w*(PH.dip-tg)-2*z*w*PH.dv)*h;PH.dip+=PH.dv*h}mv=true}
+    else{PH.dip=tg;PH.dv=0}
+    return mv}
   function draw(){pivot.updateMatrixWorld(true);place();if(shadow.visible)shadowFit();renderer.render(scene,cam);drawOv()}
-  function moveTo(q1,v1,dur,done){tw={t0:performance.now(),dur:E.still()?0:dur,q0:pivot.quaternion.clone(),q1:q1.clone(),v0:{tgt:view.tgt.clone(),d:view.d,el:view.el},v1,done};kick()}
+  function moveTo(q1,v1,dur,done){PH.spin=null;tw={t0:performance.now(),dur:E.still()?0:dur,q0:pivot.quaternion.clone(),q1:q1.clone(),v0:{tgt:view.tgt.clone(),d:view.d,el:view.el},v1,done};kick()}
 
   /* ---------- outlines on the package (layer 3), re-drawn with every frame so they stay on the print while it turns ---------- */
   const OV=[];
@@ -493,7 +513,7 @@ function Activity(el,o){
   /* ---------- a round ---------- */
   function disposePkg(){if(!P)return;pivot.remove(P.group);
     P.group.traverse(m=>{if(!m.isMesh)return;m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(x=>{if(x.map){const c=x.map.image;x.map.dispose();if(c&&c.getContext){c.width=c.height=0}}x.dispose()})});P=null}
-  function showRound(){clearTimers();tw=null;clearOv();disposePkg();bubble();
+  function showRound(){clearTimers();tw=null;PH.spin=null;PH.held=false;PH.dip=PH.dv=0;clearOv();disposePkg();bubble();
     RD=ROUNDS[round];P=RD.build();P.group.position.y=-P.cy;pivot.add(P.group);P.group.updateMatrix();P.hull=[];
     P.group.children.forEach(m=>{if(!m.isMesh)return;m.updateMatrix();const a=m.geometry.attributes.position;for(let n=0;n<a.count;n++)P.hull.push(new THREE.Vector3().fromBufferAttribute(a,n).applyMatrix4(m.matrix))});
     Object.assign(S,{step:'find',zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,qSay:null,amber:null,chunkOv:[],dashOv:[],src:null,zoomInfo:''});
@@ -503,7 +523,7 @@ function Activity(el,o){
     prompt.innerHTML=LEVELS[level].l4?RD.prompt:level<2?'Turn the '+P.noun+'.<br><b>Find the date.</b>':'Find the date<br><b>for shoppers.</b>';
     lookFind();inset.hidden=true;ctlBuild();ctl.hidden=false;answers.hidden=true;answers.classList.add('wait');ansRow.innerHTML='';qqEl.className='fd-qq';qqEl.textContent='What does the date say?';nextB.hidden=true;skipB.hidden=false;
     easyB.setAttribute('aria-pressed','false');stage.setAttribute('aria-label','A '+P.noun+' package. Turn it to find the date.');
-    shadow.visible=true;pivot.quaternion.copy(S.q);setView(poseView(S.q,false));draw();handHint();
+    shadow.visible=true;pivot.quaternion.copy(S.q);setView(poseView(S.q,false));draw();kick();handHint();
     E.line('fd-q',prompt.innerHTML,450)}
   function goRound(n){E.quiet();if(n<0){exit();return}if(n>=ROUNDS.length){showDone();return}round=n;showRound();E.snd('whoosh')}
   function startLevel(n,r){if(LEVELS[n].l4&&!L4MOD){loadL4().then(()=>{if(alive)startLevel(n,r)},e=>{console.error('Find the Date: Level 4 could not load.',e);doneV.querySelector('.fd-nextlv').hidden=true});return}
@@ -523,24 +543,35 @@ function Activity(el,o){
      pinch out is Closer, pinch in goes back, one step per pinch. A pinch never taps or turns. */
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),fingers=new Map();let ptr=null,pinch=null;
   root.addEventListener('gesturestart',e=>e.preventDefault());
-  function hitAt(x,y){ndc.set(x/W()*2-1,-(y/H())*2+1);ray.setFromCamera(ndc,cam);
-    for(const h of ray.intersectObjects(P.group.children,false)){const face=h.object.userData.face;if(face===undefined)continue;if(!face||!h.uv)return{face:''};const f=P.faces[face];return{face,px:h.uv.x*f.W,py:(1-h.uv.y)*f.H}}
-    return null}
+  function hitAt(x,y){PH.off=true;place();ndc.set(x/W()*2-1,-(y/H())*2+1);ray.setFromCamera(ndc,cam);let r=null;
+    for(const h of ray.intersectObjects(P.group.children,false)){const face=h.object.userData.face;if(face===undefined)continue;if(!face||!h.uv){r={face:''};break}const f=P.faces[face];r={face,px:h.uv.x*f.W,py:(1-h.uv.y)*f.H};break}
+    PH.off=false;place();return r}
   function near(list,h,mm){let best=null,bd=1e9;for(const r of list){if(r.face!==h.face)continue;const k=P.faces[r.face].k,b=r.box,dx=Math.max(b[0]-h.px,0,h.px-b[2]),dy=Math.max(b[1]-h.py,0,h.py-b[3]),d=Math.hypot(dx,dy);if(d<=mm*k&&d<bd){bd=d;best=r}}return best}
-  stage.addEventListener('pointerdown',e=>{if(!P||!doneV.hidden)return;if(e.isPrimary){fingers.clear();pinch=null;ptr=null;root.classList.remove('dragging')}fingers.set(e.pointerId,[e.clientX,e.clientY]);try{stage.setPointerCapture(e.pointerId)}catch(_){}
+  stage.addEventListener('pointerdown',e=>{if(!P||!doneV.hidden)return;let caught=false;if(e.isPrimary){fingers.clear();pinch=null;ptr=null;root.classList.remove('dragging');caught=!!PH.spin;PH.spin=null;PH.held=false}
+    fingers.set(e.pointerId,[e.clientX,e.clientY]);try{stage.setPointerCapture(e.pointerId)}catch(_){}
+    if(!E.still()&&!PH.held&&hitAt(e.clientX,e.clientY)){PH.held=true;kick()}
     if(fingers.size>1){if(!pinch){if(ptr&&ptr.drag){root.classList.remove('dragging');if(S.step==='find')turnTo(320)}ptr=null;
       const [a,b]=[...fingers.values()];pinch={d0:Math.hypot(a[0]-b[0],a[1]-b[1])||1,done:false}}return}
-    if(ptr||pinch)return;ptr={id:e.pointerId,x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,drag:false}});
+    if(ptr||pinch)return;ptr={id:e.pointerId,x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,drag:false,caught,samp:[[e.timeStamp||performance.now(),e.clientX,e.clientY]]}});
   stage.addEventListener('pointermove',e=>{if(fingers.has(e.pointerId))fingers.set(e.pointerId,[e.clientX,e.clientY]);
     if(pinch){if(!pinch.done&&fingers.size>1&&S.step==='find'){const [a,b]=[...fingers.values()],r=Math.hypot(a[0]-b[0],a[1]-b[1])/pinch.d0;
         if(S.zoom?r<.8:r>1.25){pinch.done=true;closer()}}return}
-    if(!ptr||e.pointerId!==ptr.id)return;const dx=e.clientX-ptr.lx,dy=e.clientY-ptr.ly,L=LEVELS[level];
+    if(!ptr||e.pointerId!==ptr.id)return;const dx=e.clientX-ptr.lx,dy=e.clientY-ptr.ly,L=LEVELS[level],sm=ptr.samp;
+    {let ce=null;try{ce=e.getCoalescedEvents&&e.getCoalescedEvents()}catch(_){}for(const c of ce&&ce.length?ce:[e])sm.push([c.timeStamp||e.timeStamp||performance.now(),c.clientX,c.clientY]);
+      const tn=sm[sm.length-1][0];while(sm.length>2&&tn-sm[0][0]>150)sm.shift()}
     if(!ptr.drag&&S.step==='find'&&Math.hypot(e.clientX-ptr.x,e.clientY-ptr.y)>10){ptr.drag=true;tw=null;S.q.copy(pivot.quaternion);S.dragged=true;handHint();root.classList.add('dragging')}
     if(ptr.drag){const k=Math.PI/(.6*W()),lim=L.drag?1.75:L.cross?Math.PI/2:0;S.q.multiply(new THREE.Quaternion().setFromAxisAngle(AY,dx*k));
       if(lim){const t=tiltOf(S.q),nt=Math.max(-lim,Math.min(lim,t+dy*k));S.q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,nt-t))}pivot.quaternion.copy(S.q);kick()}
     ptr.lx=e.clientX;ptr.ly=e.clientY});
-  const endPtr=(e,cancel)=>{fingers.delete(e.pointerId);if(pinch){if(!fingers.size)pinch=null;return}
-    if(!ptr||e.pointerId!==ptr.id)return;const p=ptr;ptr=null;root.classList.remove('dragging');if(p.drag){if(S.step==='find')turnTo(320);return}if(!cancel)tap(e.clientX,e.clientY)};
+  const endPtr=(e,cancel)=>{fingers.delete(e.pointerId);if(!fingers.size&&PH.held){PH.held=false;kick()}if(pinch){if(!fingers.size)pinch=null;return}
+    if(!ptr||e.pointerId!==ptr.id)return;const p=ptr;ptr=null;root.classList.remove('dragging');
+    if(p.drag){if(S.step!=='find')return;const v=cancel?null:fling(p,e.timeStamp||performance.now());PH.dbg=v?'spin':'still:'+PH.why;if(v){PH.spin=v;kick()}else turnTo(320);return}
+    if(p.caught){if(S.step==='find')turnTo(320);return}if(!cancel)tap(e.clientX,e.clientY)};
+  /* how fast the finger was moving when it let go (the last tenth of a second). A finger that stopped first leaves it still. */
+  function fling(p,now){PH.why='';if(E.still()){PH.why='calm';return null}const sm=p.samp,b=sm[sm.length-1];if(!b||now-b[0]>70){PH.why='stopped '+(b?Math.round(now-b[0]):'-');return null}
+    let i=sm.length-1;while(i>0&&b[0]-sm[i-1][0]<=100)i--;if(i===sm.length-1)i=Math.max(0,i-1);const a=sm[i],dt=(b[0]-a[0])/1000;if(dt<.008){PH.why='dt '+dt+' n '+sm.length;return null}
+    const L=LEVELS[level],k=Math.PI/(.6*W());let vs=(b[1]-a[1])/dt*k,vt=L.drag||L.cross?(b[2]-a[2])/dt*k:0;const m=Math.hypot(vs,vt);
+    if(m<.35){PH.why='slow '+m.toFixed(2);return null}if(m>6){vs*=6/m;vt*=6/m}return{vs,vt}}
   stage.addEventListener('pointerup',e=>endPtr(e,false));stage.addEventListener('pointercancel',e=>endPtr(e,true));
   function tap(x,y){if(!P)return;if(S.step==='find')tapFind(x,y);else if(S.step==='say')tapSay(x,y)}
   function miss(){S.misses++;if(!S.easy&&S.misses>=2)setEasy(true)}
@@ -554,7 +585,7 @@ function Activity(el,o){
       const coach=co?co.replace(/\s*$/,l4?'<br>':' '):(WHAT[kind]?'That is '+WHAT[kind]+'.'+(l4?'<br>':' '):'');
       S.amber=outline({face:r.face,box,style:'amber',pad:.75});bubble('amber','Not that one.',coach+'Find '+RD.clue+'.');E.snd('oops');miss();return}
     bubble('amber','Keep looking.','Turn it. Find '+RD.clue+'.');E.snd('click');miss()}
-  function found(ln){S.step='found';S.q.copy(pivot.quaternion);tw=null;
+  function found(ln){S.step='found';PH.spin=null;S.q.copy(pivot.quaternion);tw=null;
     const l4=!!LEVELS[level].l4,uni=ls=>[Math.min(...ls.map(l=>l.box[0])),Math.min(...ls.map(l=>l.box[1])),Math.max(...ls.map(l=>l.box[2])),Math.max(...ls.map(l=>l.box[3]))];
     const b=uni(P.lines.filter(l=>l.ok&&l.face===ln.face));
     /* Level 4 (approved pictures): the green outline goes round the date itself; the small picture in Say it marks the whole print */
@@ -710,7 +741,7 @@ function Activity(el,o){
 
   /* ---------- level done: the game's level-done page, the Fun Friday party, the game-show win when every round was won ---------- */
   function stopBig(){if(bigWinOn){E.stopWin();bigWinOn=false}}
-  function showDone(){clearTimers();tw=null;E.quiet();const n=level+1;doneV.hidden=false;
+  function showDone(){clearTimers();tw=null;PH.spin=null;PH.held=false;E.quiet();const n=level+1;doneV.hidden=false;
     doneV.querySelector('h1').textContent='Level '+n+' done!';
     doneV.querySelector('.stars').innerHTML=ROUNDS.map((_,k)=>won.has(k)?E.star().replace('alt=""','alt="star" style="animation-delay:'+(k*90)+'ms"'):'<span class="nostar" aria-label="skipped"></span>').join('');
     const nl=doneV.querySelector('.fd-nextlv');nl.hidden=level>=LEVELS.length-1;nl.textContent='Level '+(n+1);
@@ -737,17 +768,19 @@ function Activity(el,o){
   function onResize(){clearTimeout(rzT);rzT=setTimeout(()=>{if(!alive||!P)return;renderer.setSize(W(),H(),false);cam.aspect=W()/H();cam.updateProjectionMatrix();const f=tw&&tw.done;tw=null;
     if(S.qSay){pivot.quaternion.copy(S.qSay);setView(sayView(S.qSay))}else{pivot.quaternion.copy(S.q);setView(poseView(S.q,S.zoom))}
     draw();if(S.src&&S.src.parts)veil();if(f)f();handHint()},120)}
-  addEventListener('resize',onResize);
+  addEventListener('resize',onResize);const onVis=()=>kick();document.addEventListener('visibilitychange',onVis);
   function exit(){stop();onExit()}
-  function destroy(){alive=false;clearTimers();clearTimeout(rzT);if(raf)cancelAnimationFrame(raf);raf=0;tw=null;removeEventListener('keydown',onKey);removeEventListener('resize',onResize);
+  function destroy(){alive=false;clearTimers();clearTimeout(rzT);if(raf)cancelAnimationFrame(raf);raf=0;tw=null;removeEventListener('keydown',onKey);removeEventListener('resize',onResize);document.removeEventListener('visibilitychange',onVis);PH.spin=null;PH.held=false;
     stopBig();E.quiet();clearOv();disposePkg();shadow.geometry.dispose();shadow.material.dispose();shTex.dispose();
     try{renderer.dispose();renderer.forceContextLoss()}catch(e){}const c=renderer.domElement;c.width=c.height=1;el.innerHTML=''}
 
   /* ---------- for tests only: read the state and find where things are on the screen ---------- */
-  const test={state:()=>({level,round,step:S.step,misses:S.misses,easy:S.easy,zoom:S.zoom,won:[...won],dateTapped:S.dateTapped,busy:!!tw||S.step==='move',fit:S.fitInfo,fitDbg:S.fitDbg,say:S.sayInfo,zoomInfo:S.zoomInfo,closer:S.zoom?(S.zoomFocus?'framed':'1.7x'):'',
+  const test={state:()=>({level,round,step:S.step,misses:S.misses,easy:S.easy,zoom:S.zoom,won:[...won],dateTapped:S.dateTapped,busy:!!tw||S.step==='move'||!!PH.spin||PH.held||Math.abs(PH.dip)>.002||Math.abs(PH.dv)>.01,ph:{dbg:PH.dbg||'',dip:+PH.dip.toFixed(4),spin:PH.spin?+Math.hypot(PH.spin.vs,PH.spin.vt).toFixed(3):0,held:PH.held,float:floatOn()},fit:S.fitInfo,fitDbg:S.fitDbg,say:S.sayInfo,zoomInfo:S.zoomInfo,closer:S.zoom?(S.zoomFocus?'framed':'1.7x'):'',
       tilt:tiltOf(S.q),q:S.q.toArray().map(v=>+v.toFixed(4)),date:RD&&RD.ds,right:RD&&RD.spoken,choices:S.ans&&S.ans.map(a=>a.t),bubble:hudR.textContent,card:qqEl.textContent,spot:P&&P.spot,
       src:S.src?(S.src.amber?'amber:'+(S.src.amber.ch?S.src.amber.ch.k:S.src.amber.rg.what):'parts:'+S.src.parts.length+' veils:'+S.src.veils.length):'',
       tags:[...root.querySelectorAll('.fd-tag')].filter(t=>t.style.display!=='none').map(t=>t.textContent+(t.classList.contains('amber')?'*':''))}),
+    /* the gentle bob on or off (long test runs on a slow test machine turn it off; it never changes what a tap hits) */
+    float(on){PH.noFloat=!on;kick();return floatOn()},
     /* the screen point of a part, with how squarely it faces the camera: 'line:ok', 'line:bad', 'reg:price', 'chunk:date' ... */
     point(what){if(!P)return null;const [kind,name]=what.split(':'),list=kind==='line'?P.lines.filter(l=>name==='ok'?l.ok:!l.ok):kind==='reg'?P.regs.filter(r=>r.kind===name):P.chunks.filter(c=>c.kind===name);
       let best=null;for(const r of list){const d=faceDot(r.face,r.box),f=P.faces[r.face],p=scr(f.map((r.box[0]+r.box[2])/2,(r.box[1]+r.box[3])/2).applyMatrix4(P.group.matrixWorld));if(!best||d>best.dot)best={x:p[0],y:p[1],dot:d}}return best},
