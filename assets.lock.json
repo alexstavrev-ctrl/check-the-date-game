@@ -1,0 +1,153 @@
+{
+ "schema": "classroom-assets/lock@1",
+ "game": "check-the-date-game",
+ "library": {
+  "repo": "alexstavrev-ctrl/classroom-assets",
+  "commit": "ee405952c6d6013cc7de2791d18991ec2077245d"
+ },
+ "approved_baseline": {},
+ "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
+ "ignore": [],
+ "files": {
+  "assets/fonts/baloo-2/Baloo2-latin-variable.woff2": {
+   "asset": "font.baloo-2",
+   "version": 1,
+   "lib": "fonts/baloo-2/Baloo2-latin-variable.woff2",
+   "sha256": "2e9420db49d01d76a7b8a38ef22ec9c45305d9f15fafa370389b7bf467658fc3",
+   "px": null,
+   "ref": "assets/fonts/baloo-2/Baloo2-latin-variable.woff2",
+   "screens": ""
+  },
+  "assets/fonts/nunito/Nunito-latin-variable.woff2": {
+   "asset": "font.nunito",
+   "version": 1,
+   "lib": "fonts/nunito/Nunito-latin-variable.woff2",
+   "sha256": "20fc9b6fc618e7c3c68d3ac750a2a5dfbceb8521675458d2cea580b5693e4798",
+   "px": null,
+   "ref": "assets/fonts/nunito/Nunito-latin-variable.woff2",
+   "screens": ""
+  },
+  "assets/foods/bread.webp": {
+   "asset": "date-food.bread",
+   "version": 1,
+   "lib": "images/date-foods/web/bread.webp",
+   "sha256": "026f4ed738ecc911f2cb8242ca7904d78fa8cea600074fdc70c981ef41799a9c",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'bread'",
+   "screens": "title page; Level 1 round 2; Level 2 rounds 2, 5; Level 3 rounds 1, 4"
+  },
+  "assets/foods/cereal.webp": {
+   "asset": "date-food.cereal",
+   "version": 1,
+   "lib": "images/date-foods/web/cereal.webp",
+   "sha256": "044b31253cb2104267d363360007a33a0066dbeaf551197698bc334382d6fb75",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'cereal'",
+   "screens": "title page; Level 3 rounds 4, 6"
+  },
+  "assets/foods/cheese.webp": {
+   "asset": "date-food.cheese",
+   "version": 1,
+   "lib": "images/date-foods/web/cheese.webp",
+   "sha256": "a6f6f17a38a0fefafb19ba73d255dfbeae900ee01d451882f1b2cebffdd14473",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'cheese'",
+   "screens": "title page; Level 1 round 6; Level 2 rounds 2, 4, 6; Level 3 rounds 2, 5"
+  },
+  "assets/foods/eggs.webp": {
+   "asset": "date-food.eggs",
+   "version": 1,
+   "lib": "images/date-foods/web/eggs.webp",
+   "sha256": "265948e0a0b947f1e808f0eea8b0afeb8a3f473a3cd499d521033eef5d9634dc",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'eggs'",
+   "screens": "title page; Level 1 round 3; Level 2 rounds 1, 4, 6; Level 3 rounds 1, 4"
+  },
+  "assets/foods/juice.webp": {
+   "asset": "date-food.juice",
+   "version": 1,
+   "lib": "images/date-foods/web/juice.webp",
+   "sha256": "f2e6af4d1acba6f3704023301c238a113c8b54c2f954dcf966b7f005547658c8",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'juice'",
+   "screens": "title page; Level 1 round 5; Level 2 rounds 2, 4; Level 3 rounds 2, 5"
+  },
+  "assets/foods/milk.webp": {
+   "asset": "date-food.milk",
+   "version": 1,
+   "lib": "images/date-foods/web/milk.webp",
+   "sha256": "d97023df4f3bd8eeb4aefde493a4de1bcf184e375a0783ba1c78c254dc332f15",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "assets/foods/milk.webp",
+   "screens": "title page; level pick card; Level 1 round 1; Level 2 rounds 1, 3, 5; Level 3 rounds 2, 3"
+  },
+  "assets/foods/soup.webp": {
+   "asset": "date-food.soup",
+   "version": 1,
+   "lib": "images/date-foods/web/soup.webp",
+   "sha256": "7751ca3a40cd06ca2b252e99bfa7ab985a6afa2bfc6b4d9393557e6691276ac2",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'soup'",
+   "screens": "title page; Level 3 rounds 5, 6"
+  },
+  "assets/foods/tortillas.webp": {
+   "asset": "date-food.tortillas",
+   "version": 1,
+   "lib": "images/date-foods/web/tortillas.webp",
+   "sha256": "3d884ae44585a45ead9dc61bbb193f34c3913aa21f428ff2f9043e4bbc776f7e",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "'tortillas'",
+   "screens": "title page; Level 2 rounds 3, 5; Level 3 rounds 3, 6"
+  },
+  "assets/foods/yogurt.webp": {
+   "asset": "date-food.yogurt",
+   "version": 1,
+   "lib": "images/date-foods/web/yogurt.webp",
+   "sha256": "88b4e7e9858302f7746e36207c12824aa7c1367ce950271fd3b5e0292c3ea788",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "assets/foods/yogurt.webp",
+   "screens": "title page; level pick card; Level 1 round 4; Level 2 rounds 1, 3, 6; Level 3 rounds 1, 3"
+  },
+  "assets/star.png": {
+   "asset": "picture.star",
+   "version": 1,
+   "lib": "images/pictures/star.png",
+   "sha256": "5f57b401380827c7134438742b133500bfcd7bdb591d1ac1cabb0657a85d8aa4",
+   "px": [
+    512,
+    512
+   ],
+   "ref": "assets/star.png",
+   "screens": ""
+  }
+ },
+ "inline": [],
+ "removed": []
+}
