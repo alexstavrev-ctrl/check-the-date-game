@@ -1,0 +1,17 @@
+/* The floating title: the Fun Friday title stage (ff-engine.css) with this game's own pieces: the foods, today's calendar page
+   and the words "Check the Date!". Only the differences are here. */
+.tfx{background:radial-gradient(ellipse 60% 45% at 50% 52%,#EEF8FF 0%,rgba(238,248,255,0) 70%),var(--sky)}   /* a soft light behind the calendar page */
+.tfx-shadow{width:600px}
+.tfx-b.tfx-title{font-size:170px}
+/* today's calendar page, in the game's calendar look */
+.tfx-b.tfx-cal{display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:34px;box-shadow:0 12px 0 rgba(18,48,92,.18);font-family:var(--display);font-weight:800;line-height:1;box-sizing:border-box;overflow:hidden}
+.tc-head{display:block;width:100%;background:var(--stop);color:#fff;text-align:center;font-size:72px;letter-spacing:.04em;padding:46px 0 14px;position:relative}
+.tc-head::before,.tc-head::after{content:"";position:absolute;top:12px;width:26px;height:26px;border-radius:50%;background:var(--sky);box-shadow:inset 0 4px 0 rgba(0,0,0,.25)}
+.tc-head::before{left:18%}.tc-head::after{right:18%}
+.tc-day{display:grid;place-items:center;margin-top:26px;width:250px;height:230px;border-radius:28px;box-shadow:inset 0 0 0 12px var(--blue);color:var(--blue);position:relative}
+.tc-day b{font-size:190px;font-weight:800;transform:translateY(-14px)}
+.tc-day small{position:absolute;bottom:20px;font-family:var(--body);font-weight:900;font-size:30px;letter-spacing:.08em}
+.tc-wd{display:block;margin-top:18px;font-size:46px;color:var(--soft);letter-spacing:.06em;text-transform:uppercase}
+/* if a picture cannot load: the plain title words */
+.open.plain .o-title{width:94%;height:auto;overflow:visible;clip-path:none;left:3%;top:30%;transform:none;margin:0;text-align:center;font-family:var(--display);font-weight:800;font-size:clamp(40px,calc(var(--u)*16),220px);line-height:1;color:var(--ink)}
+.open.plain .o-title span{color:var(--blue)}

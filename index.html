@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Check the Date!</title>
+<meta name="description" content="Check the Date! A classroom TV game about expiration dates, in 3 levels.">
+<link rel="preload" href="assets/fonts/baloo-2/Baloo2-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/nunito/Nunito-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="assets/star.png">
+<link rel="stylesheet" href="css/ff-engine.css">
+<link rel="stylesheet" href="css/winfx-astra.css">
+<link rel="stylesheet" href="css/titlefx.css">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- level pick -->
+<section class="lvpick" id="pick" hidden aria-label="Pick a level">
+  <div class="top">
+    <span class="name">Check the Date!</span>
+    <span class="grow"></span>
+    <button class="tool snd" aria-pressed="true">Sound</button>
+  </div>
+  <main>
+    <h1>Pick a <b>level</b></h1>
+    <div class="levels">
+      <button class="lvcard choice" data-l="0" style="--i:0">
+        <span class="big">Level 1</span>
+        <span class="art"><img src="assets/foods/milk.webp" alt=""><span class="mini-cal" aria-hidden="true"><span class="mh">NOV</span><span class="mg"><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="t"></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span></span>
+        <span class="what">Two of the same food. The calendar helps.</span>
+      </button>
+      <button class="lvcard choice" data-l="1" style="--i:1">
+        <span class="big">Level 2</span>
+        <span class="art"><img src="assets/foods/yogurt.webp" alt=""><span class="mini-tag" aria-hidden="true"><small>USE BY</small>NOV 27</span></span>
+        <span class="what">Three foods with BEST BY, USE BY and EXP.</span>
+      </button>
+      <button class="lvcard choice" data-l="2" style="--i:2">
+        <span class="big">Level 3</span>
+        <span class="art"><span class="mini-phone" aria-hidden="true"><span>Thursday<b>10:24</b></span></span><span class="mini-dots" id="minidots" aria-hidden="true"></span></span>
+        <span class="what">Printed dates. Today is on the phone.</span>
+      </button>
+    </div>
+  </main>
+  <div class="bottom"><button class="nav" id="pickback">Back</button><span class="cheer"></span></div>
+</section>
+
+<!-- a round -->
+<section class="game" id="game" hidden aria-label="Game">
+  <div class="top">
+    <span class="name">Check the Date!</span>
+    <span class="lvl" id="lvl">Level 1</span>
+    <span class="together" id="together" hidden>Do it together</span>
+    <div class="stamps" id="stamps" aria-label="Rounds"></div>
+    <button class="tool" id="easy" aria-pressed="false">Easier</button>
+    <button class="tool" id="skip">Skip</button>
+    <button class="tool snd" aria-pressed="true">Sound</button>
+  </div>
+  <main id="main"></main>
+  <div class="bottom">
+    <button class="nav" id="back">Back</button>
+    <span class="cheer" id="cheer" aria-live="polite"></span>
+    <button class="nav next" id="donebtn" hidden>Done</button>
+    <button class="nav next" id="next" hidden>Next</button>
+  </div>
+</section>
+
+<!-- level done -->
+<section class="lvdone" id="done" hidden aria-label="Level done">
+  <h1 id="dtitle">Level 1 done!</h1>
+  <div class="stars" id="dstars"></div>
+  <p class="rule">If the date is <b>before today</b>, it is expired.<br>Don&rsquo;t eat it. Ask an adult.</p>
+  <div class="btns">
+    <button class="nav" id="levels">Pick a level</button>
+    <button class="nav" id="again">Play again</button>
+    <button class="nav next" id="nextlv">Level 2</button>
+  </div>
+</section>
+
+<!-- opening page: the floating title -->
+<section class="open" id="open" hidden aria-label="Opening page">
+  <h2 class="o-title">Check the <span>Date!</span></h2>
+  <button class="o-btn" id="startbtn">Tap to start</button>
+</section>
+
+<!-- the Fun Friday engine's switches: the star picture, the picture folder, no recorded voices yet (the narrator stays off, as in Fun Friday) -->
+<script>window.WARMUP_HAVE=['star'];window.WARMUP_DIR='assets/';window.WARMUP_VOICE={ext:'.mp3',ids:[]};</script>
+<script src="js/ff-engine.js"></script>
+<script src="js/winfx-astra.js"></script>
+<script src="js/dotmatrix.js"></script>
+<script src="js/titlefx.js"></script>
+<script src="js/game.js"></script>
+<script>document.getElementById('minidots').innerHTML=dotText('EXP')+dotText('12/02/26')</script>
+</body>
+</html>

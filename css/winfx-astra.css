@@ -1,0 +1,17 @@
+/* game-show win on the bill screen (Astra, 11/18) */
+#winstage{position:fixed;inset:0;z-index:35;pointer-events:none}
+.wfx-layer{--rounded:ui-rounded,"Arial Rounded MT Bold","SF Pro Rounded",system-ui,sans-serif}
+.wfx-layer,.wfx-layer *{pointer-events:none!important;user-select:none}
+.wfx-layer{position:absolute;inset:0;z-index:40;overflow:hidden;contain:layout paint style}
+.wfx-dim{position:absolute;inset:0;background:radial-gradient(ellipse 30% 42% at var(--sx) var(--sy),rgba(5,16,40,.22),rgba(5,16,40,.62) 94%,rgba(4,14,37,.8) 230%)}
+.wfx-aura{position:absolute;width:86%;height:80%;transform:translate(-50%,-50%);background:radial-gradient(ellipse,rgba(255,199,69,.20),rgba(66,128,199,.12) 40%,transparent 68%)}
+.wfx-rays{position:absolute;width:94%;aspect-ratio:1;border-radius:50%;background:repeating-conic-gradient(from 4deg,rgba(255,222,128,.36) 0deg 4deg,rgba(255,222,128,.045) 6deg 10deg,transparent 12deg 24deg);-webkit-mask:radial-gradient(closest-side,transparent 7%,#000 25%,rgba(0,0,0,.45) 53%,transparent 93%);mask:radial-gradient(closest-side,transparent 7%,#000 25%,rgba(0,0,0,.45) 53%,transparent 93%);will-change:transform}
+.wfx-cv{position:absolute;inset:0;width:100%;height:100%}
+.wfx-rim{position:absolute;inset:2.5% 1.45%;border:1px solid rgba(255,225,155,.22);border-radius:12px;box-shadow:inset 0 0 18px rgba(255,199,74,.04)}
+.wfx-big{position:absolute;font-family:var(--rounded);font-weight:900;font-size:clamp(30px,10.9vw,240px);letter-spacing:-.032em;line-height:1.12;white-space:nowrap;transform:translate(-50%,-50%);will-change:transform,opacity}
+.wfx-big span{display:block}
+.wfx-title-depth{position:absolute;inset:0;color:#0c345d;-webkit-text-stroke:.075em #0c345d;paint-order:stroke fill;text-shadow:0 .065em 0 #051d39,0 .095em .03em rgba(0,0,0,.46),0 .16em .23em rgba(0,0,0,.4),0 0 .32em rgba(255,212,76,.18)}
+.wfx-title-face{position:relative;color:#ffe079;background:linear-gradient(180deg,#fffef0 3%,#fff6b4 24%,#ffd257 43%,#fff2a8 47%,#e8a32d 51%,#ffc94b 70%,#fff2ad 100%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.009em #fff1b0;filter:drop-shadow(0 .012em 0 #9f671b)}
+.wfx-title-shine{position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.1) 44%,rgba(255,255,255,.94) 49%,rgba(255,255,255,.2) 54%,transparent 59%) 130% 0/270% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.wfx-flash{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 47%,rgba(255,239,184,.18),rgba(255,239,184,.06) 44%,transparent 72%)}
+@media(prefers-reduced-motion:reduce){.wfx-layer{display:none!important}}

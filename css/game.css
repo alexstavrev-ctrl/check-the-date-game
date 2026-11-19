@@ -1,0 +1,177 @@
+/* Check the Date! This game's own screens, on top of the Fun Friday look and effects (ff-engine.css, loaded first).
+   The screens follow the sample pages Alex approved on 11/19 (Level 1, 2 and 3): food cards with the date label and a zoomed
+   copy, the wall calendar, the phone, plus the level pick and the level-done page in the same look.
+   Pictures: Canva colored pencil, from the classroom-assets library. Every size is in --u, as in Fun Friday. */
+@font-face{font-family:"Baloo 2";src:url(../assets/fonts/baloo-2/Baloo2-latin-variable.woff2) format("woff2");font-weight:400 800;font-display:swap}
+@font-face{font-family:"Nunito";src:url(../assets/fonts/nunito/Nunito-latin-variable.woff2) format("woff2");font-weight:200 1000;font-display:swap}
+/* ---------- where this game differs from Fun Friday, and why ---------- */
+:root{
+  --u:min(1vh,.5625vw,calc((100vw - 32px)/175));      /* the dates screens are 175u wide (calendar + 3 cards): this keeps them inside a narrow window */
+  --label:#B8C2CF; --inkjet:#1E2433; --paper:#FBFAF6;  /* the package label, the printer ink, the label paper */
+}
+html{background:var(--sky)}
+.name,.nav{white-space:nowrap}
+.game .cheer{font-size:clamp(18px,calc(var(--u)*4.6),66px);line-height:1.05;text-wrap:balance}   /* date sentences are longer than Fun Friday's cheers */
+.game .hint{text-wrap:balance}
+.nav:disabled{opacity:.45;cursor:default}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* ---------- the game screen: three screens share the page column that Fun Friday's one screen uses ---------- */
+.game,.lvpick{flex:1 0 auto;display:flex;flex-direction:column;gap:calc(var(--u)*1.5)}
+.game main{gap:calc(var(--u)*2.6)}                     /* approved sample spacing: the calendar and the cards fit a 1080 TV */
+main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2,.4,1)}   /* rises in like Fun Friday's number line */
+.lvl{font-family:var(--display);font-weight:800;font-size:clamp(13px,calc(var(--u)*2.2),30px);background:#fff;color:var(--blue);border:calc(var(--u)*.35) solid var(--blue);padding:.2em .8em;border-radius:99px;white-space:nowrap}
+.grow{flex:1}
+.qrow{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.2)}
+.together{display:inline-flex;align-items:center;gap:.4em;font-family:var(--display);font-weight:800;font-size:clamp(13px,calc(var(--u)*2.2),30px);white-space:nowrap;background:var(--sun);color:var(--ink);border-radius:99px;padding:.15em .9em .1em;box-shadow:0 calc(var(--u)*.5) 0 rgba(18,48,92,.18);transform:rotate(-2deg)}
+.pretend{position:absolute;z-index:3;left:50%;top:calc(var(--u)*-3.2);transform:translateX(-50%) rotate(-2deg);white-space:nowrap;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.4);line-height:1;color:var(--ink);background:var(--sun);border-radius:99px;padding:.3em .9em .2em;box-shadow:0 calc(var(--u)*.4) 0 rgba(18,48,92,.18)}
+
+.stage{display:grid;align-items:center;justify-content:center;gap:calc(var(--u)*3.5)}
+.l1 .stage{grid-template-columns:calc(var(--u)*46) calc(var(--u)*68) calc(var(--u)*46)}
+.l2 .stage{grid-template-columns:calc(var(--u)*48) repeat(3,calc(var(--u)*38));gap:calc(var(--u)*3)}
+.l3 .stage{grid-template-columns:calc(var(--u)*28) repeat(3,calc(var(--u)*44))}
+.together-on .l1 .stage,.together-on.l1 .stage{grid-template-columns:calc(var(--u)*42) calc(var(--u)*62) calc(var(--u)*42)}
+
+/* ---------- a food = the package with its date label, and a big "zoomed" copy of that label so the whole class can read it ---------- */
+.choice.food{padding:calc(var(--u)*1.4) calc(var(--u)*1.4) calc(var(--u)*2);gap:0}
+.pic{position:relative;width:100%;aspect-ratio:1;container-type:inline-size}
+.pic img{width:100%;height:100%;display:block;object-fit:contain;-webkit-user-drag:none;user-select:none}
+.plabel{position:absolute;left:var(--lx);top:var(--ly);width:var(--lw);height:var(--lh);transform:rotate(var(--rot,0deg)) skewY(var(--sk,0deg));transform-origin:0 50%;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;text-align:center;color:var(--ink);pointer-events:none;--dp:.3cqw}
+.plabel .mo,.plabel .dd,.plabel .dt{font-family:var(--display);font-weight:800}
+.l1 .plabel .mo{font-size:calc(5.2cqw*var(--ls,1))}.l1 .plabel .dd{font-size:calc(7.4cqw*var(--ls,1))}
+.plabel.wide{flex-direction:row;align-items:baseline;gap:.9cqw}
+.l2 .plabel .kw{font-family:var(--body);font-weight:900;font-size:calc(2.5cqw*var(--ls,1));letter-spacing:.05em}
+.l2 .plabel .dt{font-size:calc(5.2cqw*var(--ls,1))}
+.plabel .dots{height:auto;display:block;margin:calc(var(--dp)*.8) 0;opacity:.92}
+.plabel{overflow:hidden}
+.cone{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cone polygon{fill:rgba(31,111,214,.07);stroke:rgba(31,111,214,.28);stroke-width:2;stroke-linejoin:round}
+.win{position:relative;z-index:1;margin-top:calc(var(--u)*-1);background:#fff;border:calc(var(--u)*.35) solid var(--label);border-radius:calc(var(--u)*1.2);
+  box-shadow:0 calc(var(--u)*.4) calc(var(--u)*1) rgba(18,48,92,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:calc(var(--u)*1.2) calc(var(--u)*2)}
+.win::before{content:"";position:absolute;left:calc(var(--u)*-2.2);top:calc(var(--u)*-2.2);width:calc(var(--u)*4.4);height:calc(var(--u)*4.4);border-radius:50%;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2312305C' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='6'/%3E%3Cpath d='M14.5 14.5 20 20'/%3E%3C/svg%3E") center/62% no-repeat;border:calc(var(--u)*.35) solid var(--label);box-sizing:border-box}
+.win .mo,.win .dd,.win .dt{font-family:var(--display);font-weight:800}
+.l1 .win{min-width:calc(var(--u)*30)}
+.l1 .win .row{display:flex;align-items:baseline}
+.l1 .win .mo{font-size:calc(var(--u)*6);margin-right:.25em}.l1 .win .dd{font-size:calc(var(--u)*9)}
+.l2 .win{min-width:calc(var(--u)*29)}
+.l2 .win .kw{font-family:var(--body);font-weight:900;font-size:calc(var(--u)*2.8);letter-spacing:.08em;margin-bottom:calc(var(--u)*.5)}
+.l2 .win .kw.long{font-size:calc(var(--u)*2.3);letter-spacing:.05em}
+.l2 .win .dt{font-size:calc(var(--u)*6.6)}
+.l3 .win{width:auto;min-width:calc(var(--u)*34);max-width:calc(var(--u)*40);box-sizing:border-box;background:var(--paper);padding:calc(var(--u)*1.6) calc(var(--u)*2.2);--dp:var(--dpw,calc(var(--u)*.6))}
+.l3 .win .dots{display:block;height:auto}
+.l3 .win .dots.kline+.dots.kline{margin-top:calc(var(--u)*.7)}
+.l3 .win .dots.dline{margin-top:calc(var(--u)*1.3)}
+.l3 .stage.dense .pic{width:84%}
+/* a round where one date needs more lines (BEST IF USED BY): the cards stay one height, as in the approved samples; the picture keeps to the top, the zoomed copy to the bottom */
+.l3 .stage.dense>.choice.food{align-self:stretch;justify-content:space-between}
+.l3 .win .dots.lot{margin-top:calc(var(--u)*1.3);opacity:.85}
+/* the verdict stamp on the label once a food is checked */
+.verdict{position:absolute;z-index:3;right:calc(var(--u)*-1.2);top:calc(var(--u)*-2.4);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.7);line-height:1;color:#fff;
+  padding:.3em .6em .2em;border-radius:calc(var(--u)*1);transform:rotate(6deg);box-shadow:0 calc(var(--u)*.4) 0 rgba(18,48,92,.22);animation:stampin .35s cubic-bezier(.3,1.7,.5,1) backwards;white-space:nowrap}
+.verdict.good{background:var(--go)}.verdict.bad{background:var(--stop)}
+/* states: right, wrong and the rest are the Fun Friday card states (ff-engine.css). Level 3 adds a blue "picked" check,
+   because a pick is not checked until Done. */
+.food.sel{border-color:var(--blue);background:#EAF3FF}
+.food.sel::before{content:"\2713";position:absolute;z-index:1;top:calc(var(--u)*-2);right:calc(var(--u)*-2);width:calc(var(--u)*7.5);height:calc(var(--u)*7.5);border-radius:50%;background:var(--blue);color:#fff;
+  border:calc(var(--u)*.6) solid #fff;box-sizing:border-box;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*5);line-height:1;animation:stampin .3s cubic-bezier(.3,1.7,.5,1) backwards}
+.solved .food{pointer-events:none}
+
+/* ---------- the wall calendar (Level 1 and 2 find "today" this way) ---------- */
+.cal{background:#fff;border-radius:calc(var(--u)*2.4);box-shadow:0 calc(var(--u)*.8) 0 rgba(18,48,92,.18);position:relative}
+.calhead{background:var(--stop);color:#fff;text-align:center;font-family:var(--display);font-weight:800;letter-spacing:.04em;position:relative;border-radius:calc(var(--u)*2.4) calc(var(--u)*2.4) 0 0}
+.l1 .calhead{font-size:calc(var(--u)*6.2);padding:calc(var(--u)*1.6) 0 calc(var(--u)*.6)}
+.l2 .calhead{font-size:calc(var(--u)*4.8);padding:calc(var(--u)*1.4) 0 calc(var(--u)*.4)}
+.calhead::before,.calhead::after{content:"";position:absolute;top:calc(var(--u)*.9);width:calc(var(--u)*1.8);height:calc(var(--u)*1.8);border-radius:50%;background:var(--sky);box-shadow:inset 0 calc(var(--u)*.3) 0 rgba(0,0,0,.25)}
+.calhead::before{left:18%}.calhead::after{right:18%}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-weight:900;color:var(--soft);padding:calc(var(--u)*1) calc(var(--u)*1.2) calc(var(--u)*.4)}
+.l1 .wk{font-size:calc(var(--u)*2.1)}.l2 .wk{font-size:calc(var(--u)*1.7)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:calc(var(--u)*.6);padding:0 calc(var(--u)*1.2) calc(var(--u)*1.4)}
+.d{position:relative;display:grid;place-items:center;border-radius:calc(var(--u)*1);font-family:var(--display);font-weight:800;line-height:1;background:#F4F7FB}
+.l1 .d{height:calc(var(--u)*7.6);font-size:calc(var(--u)*4.4)}
+.l2 .d{height:calc(var(--u)*6.4);font-size:calc(var(--u)*3.4)}
+.cal.six.l1c .d{height:calc(var(--u)*6.4)}.cal.six.l2c .d{height:calc(var(--u)*5.4)}
+.d.blank{background:none}
+.d i{font-style:normal;position:relative;z-index:1}
+/* Level 1: the days that are gone are grey and crossed out, the way a class calendar is. Level 2: only as a hint. */
+.l1 .d.past,.hinted .d.past{background:#E4E8EE;color:rgba(18,48,92,.66)}
+.l1 .d.past::before,.l1 .d.past::after,.hinted .d.past::before,.hinted .d.past::after{content:"";position:absolute;left:50%;top:50%;width:80%;height:calc(var(--u)*.55);background:var(--stop);opacity:.62;border-radius:99px}
+.l1 .d.past::before,.hinted .d.past::before{transform:translate(-50%,-50%) rotate(40deg)}
+.l1 .d.past::after,.hinted .d.past::after{transform:translate(-50%,-50%) rotate(-40deg)}
+.d.today{background:#fff;box-shadow:inset 0 0 0 calc(var(--u)*.7) var(--blue);color:var(--blue)}
+.d.today small{position:absolute;bottom:calc(var(--u)*.6);font-family:var(--body);font-weight:900;font-size:calc(var(--u)*1.4);letter-spacing:.05em;line-height:1}
+.l1 .d.today i{transform:translateY(calc(var(--u)*-.9))}
+.l2 .d.today small{font-size:calc(var(--u)*1.08);letter-spacing:.02em;bottom:calc(var(--u)*.55)}
+.l2 .d.today i{transform:translateY(calc(var(--u)*-.75))}
+/* a food's date shown on the calendar: a little picture of the food pinned to its day */
+.pin{position:absolute;z-index:2;right:calc(var(--u)*-1.2);top:calc(var(--u)*-1.6);width:calc(var(--u)*5);height:calc(var(--u)*5);border-radius:50%;background:#fff;box-sizing:border-box;
+  border:calc(var(--u)*.45) solid var(--blue);display:grid;place-items:center;overflow:hidden;animation:stampin .35s cubic-bezier(.3,1.7,.5,1) backwards;box-shadow:0 calc(var(--u)*.3) calc(var(--u)*.6) rgba(18,48,92,.25)}
+.pin img{width:88%;height:88%;object-fit:contain}
+.pin.good{border-color:var(--go)}.pin.bad{border-color:var(--stop)}
+.pin+.pin{right:auto;left:calc(var(--u)*-1.2)}
+.d.lit{box-shadow:inset 0 0 0 calc(var(--u)*.55) var(--sun)}
+.d.today.lit{box-shadow:inset 0 0 0 calc(var(--u)*.7) var(--blue)}
+/* months strip (Level 2 dates in last or next month; Level 3 month numbers) */
+.months{display:flex;justify-content:center;gap:calc(var(--u)*1.4);margin-top:calc(var(--u)*4.2);flex-wrap:wrap}
+.months>span{position:relative;min-width:calc(var(--u)*11);box-sizing:border-box;font-family:var(--display);font-weight:800;background:#fff;border-radius:calc(var(--u)*1.2);padding:calc(var(--u)*.8) calc(var(--u)*1.2) calc(var(--u)*.6);font-size:calc(var(--u)*3.2);line-height:1;color:var(--ink);text-align:center;box-shadow:0 calc(var(--u)*.5) 0 rgba(18,48,92,.14)}
+.months>span b{display:block;font-family:var(--body);font-weight:900;font-size:calc(var(--u)*1.4);color:var(--soft);margin-top:calc(var(--u)*.3)}
+.months>span.now{background:var(--blue);color:#fff}.months>span.now b{color:#fff}
+.hinted .months>span.before{background:#FDEBEA;color:var(--stop)}.hinted .months>span.after{background:#E6F8EE;color:var(--go)}
+.months .pin{width:calc(var(--u)*4.4);height:calc(var(--u)*4.4);top:calc(var(--u)*-3.9);right:auto;left:50%;margin-left:calc(var(--u)*-2.2)}
+.months .pin+.pin{left:50%;margin-left:calc(var(--u)*.4)}
+.calwrap{display:flex;flex-direction:column}
+
+/* ---------- Level 3: today comes from a phone, like in real life ---------- */
+.phone{width:100%;aspect-ratio:9/18.5;background:#1E2433;border-radius:calc(var(--u)*4.4);padding:calc(var(--u)*1.1);box-sizing:border-box;box-shadow:0 calc(var(--u)*.8) 0 rgba(18,48,92,.25);position:relative}
+.scr{width:100%;height:100%;border-radius:calc(var(--u)*3.4);background:linear-gradient(170deg,#7DB7F0 0%,#BFDDF7 55%,#F5E6C8 100%);display:flex;flex-direction:column;align-items:center;color:#fff;
+  text-shadow:0 calc(var(--u)*.2) calc(var(--u)*.6) rgba(18,48,92,.35);position:relative;overflow:hidden}
+.scr::before{content:"";position:absolute;top:calc(var(--u)*1.2);left:50%;transform:translateX(-50%);width:32%;height:calc(var(--u)*2.6);background:#1E2433;border-radius:99px}
+.pdate{margin-top:calc(var(--u)*7.5);font-weight:800;font-size:calc(var(--u)*2.9);text-align:center;line-height:1.15}
+.ptime{font-weight:700;font-size:calc(var(--u)*7.6);line-height:1;margin-top:calc(var(--u)*.4);letter-spacing:-.02em}
+.pnum{display:none;margin-top:calc(var(--u)*1.6);background:rgba(255,255,255,.92);color:var(--ink);text-shadow:none;border-radius:calc(var(--u)*1.2);padding:calc(var(--u)*.8) calc(var(--u)*1.2);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.4);line-height:1;animation:stampin .35s cubic-bezier(.3,1.7,.5,1) backwards}
+.hinted .pnum{display:block}
+.pnum small{display:block;font-family:var(--body);font-weight:900;font-size:calc(var(--u)*1.4);letter-spacing:.06em;color:var(--blue);margin-bottom:calc(var(--u)*.4);text-align:center}
+.picons{position:absolute;bottom:calc(var(--u)*3);left:14%;right:14%;display:flex;justify-content:space-between}
+.picons span{width:calc(var(--u)*5.2);height:calc(var(--u)*5.2);border-radius:50%;background:rgba(18,48,92,.28);display:grid;place-items:center}
+.picons svg{width:52%;height:52%}
+.phonewrap{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.2)}
+
+
+/* ---------- level pick ---------- */
+.lvpick{padding-bottom:calc(var(--u)*1.5)}
+.lvpick main{gap:calc(var(--u)*4)}
+.levels{display:grid;grid-template-columns:repeat(3,calc(var(--u)*50));gap:calc(var(--u)*4);justify-content:center}
+.choice.lvcard{padding:calc(var(--u)*2.2) calc(var(--u)*2) calc(var(--u)*2.6);gap:calc(var(--u)*1.4);text-align:center}
+.lvcard .big{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*7);line-height:1;color:var(--blue)}
+.lvcard .what{font-weight:900;font-size:calc(var(--u)*2.8);line-height:1.15;min-height:2.3em;text-wrap:balance}
+.lvcard .art{width:100%;height:calc(var(--u)*24);position:relative;display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*1.5)}
+.lvcard .art img{height:100%;width:auto;max-width:48%;object-fit:contain}
+.mini-cal{display:block;flex:none;width:calc(var(--u)*19);background:#fff;border-radius:calc(var(--u)*1.4);box-shadow:0 0 0 calc(var(--u)*.3) #E3E9F2;overflow:hidden}
+.mini-cal .mh{display:grid;background:var(--stop);height:calc(var(--u)*3.4);color:#fff;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2);display:grid;place-items:center;letter-spacing:.04em}
+.mini-cal .mg{display:grid;grid-template-columns:repeat(5,1fr);gap:calc(var(--u)*.4);padding:calc(var(--u)*.8)}
+.mini-cal .mg i{aspect-ratio:1;border-radius:calc(var(--u)*.5);background:#F4F7FB;position:relative}
+.mini-cal .mg i.x{background:#E4E8EE}
+.mini-cal .mg i.x::before,.mini-cal .mg i.x::after{content:"";position:absolute;left:12%;right:12%;top:50%;height:calc(var(--u)*.35);background:var(--stop);opacity:.65;border-radius:9px;transform:rotate(40deg)}
+.mini-cal .mg i.x::after{transform:rotate(-40deg)}
+.mini-cal .mg i.t{background:#fff;box-shadow:inset 0 0 0 calc(var(--u)*.4) var(--blue)}
+.mini-tag{display:block;flex:none;background:#fff;border:calc(var(--u)*.3) solid var(--label);border-radius:calc(var(--u)*.9);padding:calc(var(--u)*.8) calc(var(--u)*1.2);line-height:1;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.2)}
+.mini-tag small{display:block;font-family:var(--body);font-weight:900;font-size:calc(var(--u)*1.5);letter-spacing:.06em;margin-bottom:calc(var(--u)*.3)}
+.mini-phone{display:block;flex:none;height:100%;aspect-ratio:9/17;background:#1E2433;border-radius:calc(var(--u)*2.2);padding:calc(var(--u)*.6);box-sizing:border-box}
+.mini-phone>span{height:100%;box-sizing:border-box;border-radius:calc(var(--u)*1.7);background:linear-gradient(170deg,#7DB7F0,#BFDDF7 55%,#F5E6C8);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:24%;color:#fff;font-weight:800;font-size:calc(var(--u)*1.6);text-align:center;line-height:1.1;text-shadow:0 1px 3px rgba(18,48,92,.35)}
+.mini-phone b{display:block;font-size:calc(var(--u)*4);font-weight:700}
+.mini-dots{display:block;flex:none;background:var(--paper);border:calc(var(--u)*.3) solid var(--label);border-radius:calc(var(--u)*.9);padding:calc(var(--u)*1) calc(var(--u)*1.2);width:calc(var(--u)*20);--dp:calc(var(--u)*.36)}
+.mini-dots .dots{display:block;height:auto;margin:calc(var(--u)*.4) 0}
+
+/* ---------- level done ---------- */
+.lvdone{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--u)*3.4);padding:calc(var(--u)*3) 0;text-align:center}
+.lvdone h1{font-size:clamp(30px,calc(var(--u)*10),140px)}
+.lvdone .stars{display:flex;gap:calc(var(--u)*1.6)}
+.lvdone .stars img{width:calc(var(--u)*9);height:calc(var(--u)*9);animation:stampin .45s cubic-bezier(.3,1.7,.5,1) backwards}
+.lvdone .stars .nostar{width:calc(var(--u)*7.4);height:calc(var(--u)*7.4);margin:calc(var(--u)*.8);border-radius:50%;border:calc(var(--u)*.5) dashed var(--soft);box-sizing:border-box}
+.lvdone .rule{font-weight:900;font-size:calc(var(--u)*3.4);background:#fff;border-radius:calc(var(--u)*2);padding:calc(var(--u)*1.4) calc(var(--u)*3);box-shadow:0 calc(var(--u)*.6) 0 rgba(18,48,92,.12);max-width:calc(var(--u)*140)}
+.lvdone .rule b{color:var(--stop)}
+.lvdone .btns{display:flex;gap:calc(var(--u)*2.4);flex-wrap:wrap;justify-content:center}
+.lvdone .nav{font-size:clamp(18px,calc(var(--u)*4.4),60px)}
+
+/* calm mode: no motion at all (on top of the Fun Friday calm rules) */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
