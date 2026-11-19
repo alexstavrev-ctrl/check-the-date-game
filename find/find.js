@@ -29,6 +29,7 @@ const E={
   line(id,html,delay){try{if(typeof LINES!=='undefined'&&typeof speak==='function'){LINES[id]=String(html).replace(/<br>/g,' ').replace(/<[^>]+>/g,'');speak(id,delay||0)}}catch(e){}},
   quiet(){try{if(typeof hush==='function')hush()}catch(e){}},
   star(){try{if(typeof P==='function')return P('star','⭐')}catch(e){}return '⭐'},
+  starArt(){try{if(typeof HAVE!=='undefined')return HAVE.has('star')}catch(e){}return false},
   font(){if(typeof DOTFONT!=='undefined')return DOTFONT;throw new Error('Find the Date needs js/dotmatrix.js (DOTFONT)')}
 };
 
@@ -489,7 +490,7 @@ function Activity(el,o){
   /* ---------- the page: words (layer 1) < package (2) < outlines (3) < buttons (4) < level done (5) ---------- */
   el.innerHTML='<div class="fd-root">'+
     '<div class="fd-stripL"><span class="name">Find the Date!</span><span class="lvl"></span><span class="fd-steps"></span></div>'+
-    '<div class="fd-hudL"><h1 class="fd-prompt"></h1><div class="fd-look"></div><div class="fd-inset" hidden><canvas></canvas><svg aria-hidden="true"></svg><span class="fd-cap2"></span></div></div>'+
+    '<div class="fd-hudL"><div class="stamps fd-stamps" aria-label="Rounds"></div><h1 class="fd-prompt"></h1><div class="fd-look"></div><div class="fd-inset" hidden><canvas></canvas><svg aria-hidden="true"></svg><span class="fd-cap2"></span></div></div>'+
     '<div class="fd-hudR" aria-live="polite"></div>'+
     '<div class="fd-stage" role="img"></div><svg class="fd-ov" aria-hidden="true"></svg>'+
     '<div class="fd-tools"><button class="tool fd-easy" aria-pressed="false">Easier</button><button class="tool fd-skip">Skip</button><button class="tool snd" aria-pressed="'+E.loud()+'">Sound</button></div>'+
@@ -500,7 +501,7 @@ function Activity(el,o){
     '<div class="lvdone fd-done" hidden><h1></h1><div class="stars"></div><p class="rule">Now find the date on a <b>real package</b>.</p>'+
     '<div class="btns"><button class="nav fd-levels">Pick a level</button><button class="nav fd-again">Play again</button><button class="nav next fd-nextlv">Level 2</button></div></div></div>';
   const q=s=>el.querySelector(s);
-  const root=q('.fd-root'),stripL=q('.fd-stripL'),lvlEl=q('.lvl'),stepsEl=q('.fd-steps'),hudL=q('.fd-hudL'),prompt=q('.fd-prompt'),look=q('.fd-look'),
+  const root=q('.fd-root'),stripL=q('.fd-stripL'),lvlEl=q('.lvl'),stampsEl=q('.fd-stamps'),stepsEl=q('.fd-steps'),hudL=q('.fd-hudL'),prompt=q('.fd-prompt'),look=q('.fd-look'),
     inset=q('.fd-inset'),hudR=q('.fd-hudR'),stage=q('.fd-stage'),ov=q('.fd-ov'),tools=q('.fd-tools'),easyB=q('.fd-easy'),skipB=q('.fd-skip'),sndB=q('.snd'),
     backB=q('.fd-back'),ctl=q('.fd-ctl'),answers=q('.fd-answers'),qqEl=q('.fd-qq'),ansRow=q('.fd-ans'),nextB=q('.fd-next'),hand=q('.fd-hand'),doneV=q('.fd-done');
 
@@ -537,7 +538,7 @@ function Activity(el,o){
   const rectOf=(e,p)=>{const r=e.getBoundingClientRect();return[r.left-p,r.top-p,r.right+p,r.bottom+p]};
   /* everything the package keeps clear of: the floating words, the message's place and the buttons */
   function hudRects(){const U=E.u(),p=U*1.4,out=[];
-    [stripL,tools,prompt,look,backB,ctl].forEach(e=>{if(e.hidden)return;const r=e.getBoundingClientRect();if(r.width&&r.height){const q=[r.left-p,r.top-p,r.right+p,r.bottom+p];q.nm=e.className.split(' ').pop();out.push(q)}});
+    [stripL,stampsEl,tools,prompt,look,backB,ctl].forEach(e=>{if(e.hidden)return;const r=e.getBoundingClientRect();if(r.width&&r.height){const q=[r.left-p,r.top-p,r.right+p,r.bottom+p];q.nm=e.className.split(' ').pop();out.push(q)}});
     const hr=hudR.getBoundingClientRect(),q=[hr.right-U*36-p,hr.top-p,hr.right+p,hr.top+U*12+p];q.nm='bubble';out.push(q);return out}
   /* the package as big as the screen allows (about 93% of its height); then shrink or slide it only as much as it takes to stay clear */
   function fitAvoid(pts,e){const fillH=.93,base=fitCam(pts,e,.98,fillH,0,0),w=W(),h=H();
@@ -675,6 +676,18 @@ function Activity(el,o){
 
   /* ---------- the floating words (layer 1) and the buttons (layer 4), in the viz dev's places ---------- */
   function steps(n){stepsEl.innerHTML='<span class="fd-step '+(n>1?'done':'now')+'">1 Find it</span><span class="fd-sep" aria-hidden="true">›</span><span class="fd-step'+(n===2?' now':'')+'">2 Say it</span>'}
+  /* the round stamps (the game's .stamp look): a number per round, the round on now in blue, a star for each round won;
+     a right answer sends the engine's star flying from the answer to its stamp (the engine's flyStar, drawn here because
+     the engine's own one is tied to the game's strip) */
+  let flyEl=null;
+  function stampRow(land){const art=E.starArt();stampsEl.innerHTML=ROUNDS.map((_,k)=>'<span class="stamp'+(won.has(k)?' done'+(art?' art':''):'')+(k===round?' now':'')+(k===land?' land':'')+'">'+(won.has(k)?E.star():(k+1))+'</span>').join('')}
+  function flyStar(from,k){if(flyEl){flyEl.remove();flyEl=null}const tgt=stampsEl.children[k];
+    if(E.still()||!tgt||!from||!from.animate){stampRow();return}
+    const mid=e=>{const r=e.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]},[sx,sy]=mid(from),[ex,ey]=mid(tgt),U=E.u(),s=document.createElement('span');
+    s.className='fly';s.innerHTML=E.star();s.style.left=sx+'px';s.style.top=sy+'px';document.body.appendChild(s);flyEl=s;
+    const an=s.animate([{transform:'translate(-50%,-50%) scale(.3) rotate(0deg)'},{transform:'translate(-50%,calc(-50% - '+U*9+'px)) scale(1.6) rotate(30deg)',offset:.35},
+      {transform:'translate(calc(-50% + '+(ex-sx)+'px),calc(-50% + '+(ey-sy)+'px)) scale(.55) rotate(360deg)'}],{duration:900,easing:'ease-in-out'});
+    an.onfinish=()=>{s.remove();if(flyEl===s)flyEl=null;if(alive&&won.has(k))stampRow(k)}}
   function bubble(kind,title,html){hudR.innerHTML=title?'<div class="fd-bubble'+(kind==='go'?' go':'')+'"><span class="t">'+title+'</span>'+html+'</div>':''}
   function lookFind(){look.innerHTML='<span class="fd-lab">'+EYE+'Look for</span>'+(level===0?'<span class="fd-chip month">'+MON[RD.date.getMonth()]+'</span>':['BEST BY','USE BY','EXP'].map(s=>'<span class="fd-chip">'+s+'</span>').join('')+(LEVELS[level].l4&&RD.month?'<span class="fd-chip month">'+RD.month+'</span>':''))}
   function ctlBuild(){const L=LEVELS[level],rb=(a,label)=>'<button class="fd-rb'+(a==='zoom'?' zoom':'')+'" data-a="'+a+'" aria-label="'+label+'"'+(a==='zoom'?' aria-pressed="false"':'')+'>'+I[a]+'</button>';
@@ -697,7 +710,7 @@ function Activity(el,o){
     Object.assign(S,{step:'find',zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,qSay:null,amber:null,chunkOv:[],dashOv:[],src:null,zoomInfo:''});
     const st=RD.rd.start;S.q=st?new THREE.Quaternion().setFromEuler(new THREE.Euler(st[0],st[1],0,'YXZ')):new THREE.Quaternion();
     root.classList.remove('say','zoomed','won');root.classList.toggle('drag',!!LEVELS[level].drag);root.classList.toggle('fd-l4',!!LEVELS[level].l4);
-    lvlEl.textContent=LEVELS[level].name;steps(1);
+    lvlEl.textContent=LEVELS[level].name;steps(1);stampRow();
     prompt.innerHTML=LEVELS[level].l4?RD.prompt:level<2?'Turn the '+P.noun+'.<br><b>Find the date.</b>':'Find the date<br><b>for shoppers.</b>';
     lookFind();inset.hidden=true;ctlBuild();ctl.hidden=false;answers.hidden=true;answers.classList.add('wait');ansRow.innerHTML='';qqEl.className='fd-qq';qqEl.textContent='What does the date say?';nextB.hidden=true;skipB.hidden=false;
     easyB.setAttribute('aria-pressed','false');stage.setAttribute('aria-label','A '+P.noun+' package. Turn it to find the date.');
@@ -874,17 +887,17 @@ function Activity(el,o){
     E.snd('oops');miss()}
   function pick(b){if(S.step!=='say'||!S.dateTapped||b.classList.contains('no')||b.classList.contains('amber'))return;const a=S.ans[+b.dataset.i];E.line('fd-a',a.t);
     if(LEVELS[level].l4){pick4(b,a);return}
-    if(a.ok){S.step='won';won.add(round);b.classList.add('yes');ansRow.querySelectorAll('.fd-a').forEach(x=>{if(x!==b)x.classList.add('rest')});
+    if(a.ok){S.step='won';const first=!won.has(round);won.add(round);b.classList.add('yes');ansRow.querySelectorAll('.fd-a').forEach(x=>{if(x!==b)x.classList.add('rest')});
       clearOv(it=>it.style==='glow'||it.style==='amber');bubble('go','Yes!','The date is <b>'+a.t+'</b>.');E.snd('win');
-      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,90);nextB.hidden=false;skipB.hidden=true;root.classList.add('won')}
+      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,first?90:40);nextB.hidden=false;skipB.hidden=true;root.classList.add('won');if(first)flyStar(b,round);else stampRow()}
     else{b.classList.add('no');bubble('amber','Not that one.',a.coach+' Read the date again.');E.snd('oops');miss()}}
   /* Level 4 Say it (approved tv-3 and tv-4): the coaching line is inside the answer card; a wrong pick turns amber and the
      parts of the date get small amber tags; the right pick turns green with the Fun Friday check stamp */
   function pick4(b,a){clearSrc();
-    if(a.ok){S.step='won';won.add(round);b.classList.add('go','yes');ansRow.querySelectorAll('.fd-a.amber').forEach(x=>x.classList.remove('amber'));
+    if(a.ok){S.step='won';const first=!won.has(round);won.add(round);b.classList.add('go','yes');ansRow.querySelectorAll('.fd-a.amber').forEach(x=>x.classList.remove('amber'));
       clearOv(it=>it.style==='glow'||it.style==='amber');bubble();
       qqEl.className='fd-qq go';qqEl.innerHTML='<span class="t">You got it!</span>'+(a.coach||'The date is <b>'+a.t+'</b>.');E.snd('win');
-      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,90);nextB.hidden=false;skipB.hidden=true;root.classList.add('won')}
+      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,first?90:40);nextB.hidden=false;skipB.hidden=true;root.classList.add('won');if(first)flyStar(b,round);else stampRow()}
     else{b.classList.add('amber');qqEl.className='fd-qq';qqEl.innerHTML='<span class="t">Not that one.</span>'+(a.coach||'Read the date again.');showSrc(a);E.snd('oops');miss()}}
   /* Level 4: the regs on the date's face that a wrong answer can come from (the deli's PACKED ON): their what is some choice's src */
   function srcRegs(){const set=new Set(RD.choices.map(c=>c.src).filter(Boolean));return P.regs.filter(r=>r.face===P.spot&&r.what&&set.has(r.what))}
@@ -949,7 +962,7 @@ function Activity(el,o){
   addEventListener('resize',onResize);const onVis=()=>kick();document.addEventListener('visibilitychange',onVis);
   function exit(){stop();onExit()}
   function destroy(){alive=false;clearTimers();clearTimeout(rzT);if(raf)cancelAnimationFrame(raf);raf=0;tw=null;removeEventListener('keydown',onKey);removeEventListener('resize',onResize);document.removeEventListener('visibilitychange',onVis);PH.spin=null;PH.held=false;
-    stopBig();E.quiet();clearOv();disposePkg();shadow.geometry.dispose();shadow.material.dispose();shTex.dispose();
+    stopBig();E.quiet();clearOv();disposePkg();if(flyEl){flyEl.remove();flyEl=null}shadow.geometry.dispose();shadow.material.dispose();shTex.dispose();
     try{renderer.dispose();renderer.forceContextLoss()}catch(e){}const c=renderer.domElement;c.width=c.height=1;el.innerHTML=''}
 
   /* ---------- for tests only: read the state and find where things are on the screen ---------- */
