@@ -15,6 +15,10 @@
    the day swapped, the PACKED ON date, the dairy code read as June). Each wrong choice has src: 'date' when it misreads
    the date itself (the engine shows the year / month / day tags), or the line it came from ('time' or 'code': a chunk k
    on the date's face; 'packed on': the reg with that what), which the engine outlines in amber instead of the tags.
+   Every choice in a round has the same form, so no choice stands out without reading: rounds 1 to 4 always say the year
+   (as in Levels 2 and 3), the milk never does (its print has no year). The spaghetti's right answer has no day on
+   purpose (that is its lesson); its wrong ones are days read out of the year. No wrong choice names today.
+   A chunk may carry tag: its name tag in Say it, when the engine's default for its k does not fit (the milk's dairy's code).
 
    Packages are drawn in code in the game's colored-pencil style, in real millimetres: 1 unit = 100 mm, origin at the
    bottom centre, +Z front, +Y up. Every mesh carries userData.face. Prints use real letter heights (2.5 to 4.6 mm). */
@@ -43,11 +47,13 @@ export function rounds(kit, {today, rand}) {
   const yy = d => p2(d.getFullYear() % 100);
   const full = d => `${MONTH[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   const md = (m, day) => `${MONTH[m]} ${day}`;
+  const mdYear = (m, day, y) => `${MONTH[m]} ${day}, ${y}`;
   const iso = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
   const time24 = () => `${ri(13, 23)}:${p2(ri(0, 59))}`;               /* 13:00 to 23:59, can't be read as a month */
   /* three choices: the right one first, then the wrong ones in order of preference; duplicates and look-alikes of the
      right answer are skipped; the order is shuffled with rand */
   /* a choice must name a real day (no February 30); a choice with no year may be February 29 */
+  const isToday = t => { const x = t.match(/^([A-Z][a-z]+) (\d{1,2}), (\d{4})$/); return !!x && MONTH.indexOf(x[1]) === t0.getMonth() && +x[2] === t0.getDate() && +x[3] === t0.getFullYear(); };
   const real = t => { const x = t.match(/^([A-Z][a-z]+) (\d{1,2})(?:, (\d{4}))?$/); if (!x) return true; const mi = MONTH.indexOf(x[1]), d = +x[2], y = x[3] ? +x[3] : 2028, dt = new Date(y, mi, d); return mi >= 0 && d >= 1 && dt.getMonth() === mi && dt.getDate() === d; };
   function choices(right, wrong) {
     const key = t => t.toLowerCase().replace(/,? \d{4}$/, ''), seen = new Set([right.t.toLowerCase()]), near = key(right.t);
@@ -57,7 +63,7 @@ export function rounds(kit, {today, rand}) {
     const spare = mi < 0 ? [] : [1, 11].map(k => ({t: MONTH[(mi + k) % 12] + x[2], coach: `Look at the <b>month</b> again.`, src: 'date'}));
     for (const w of wrong.concat(spare)) {
       if (out.length >= 3) break;
-      if (!w || !w.t || !real(w.t)) continue;
+      if (!w || !w.t || !real(w.t) || isToday(w.t)) continue;
       const lo = w.t.toLowerCase();
       if (seen.has(lo) || key(w.t) === near) continue;
       seen.add(lo); out.push({t: w.t, ok: false, coach: w.coach, src: w.src || 'date'});
@@ -179,9 +185,9 @@ export function rounds(kit, {today, rand}) {
     R4.push({name: 'Peanut butter', newThing: 'a time that looks like a date', build, kw: 'BEST IF USED BY', clue: '<b>BEST IF USED BY</b>', dateText, date: iso(d),
       parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-43, 30, -43], [25, 62, 0], [[44, 30, 0], [44, 62, 0]], .05, Math.PI, 'strip'),
       choices: choices({t: full(d), coach: `<b>${time}</b> is only the time.`}, [
-        {t: md(m, tm), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
-        {t: md(m, Number(yy(d))), coach: `<b>${Y}</b> is the <b>year</b>.`, src: 'date'},
-        {t: md(m, Number(code.slice(0, 2)) <= 28 ? Number(code.slice(0, 2)) : 12), coach: `<b>${code}</b> is the <b>factory code</b>.`, src: 'code'}])});
+        {t: mdYear(m, tm, Y), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
+        {t: mdYear(m, Number(yy(d)), Y), coach: `<b>${Y}</b> is the <b>year</b>.`, src: 'date'},
+        {t: mdYear(m, Number(code.slice(0, 2)) <= 28 ? Number(code.slice(0, 2)) : 12, Y), coach: `<b>${code}</b> is the <b>factory code</b>.`, src: 'code'}])});
   }
 
   /* ======================================================================================================
@@ -237,7 +243,7 @@ export function rounds(kit, {today, rand}) {
       parts, month: MON[use.getMonth()], prompt: FIND, start: [.35, 0], close: framing([-115, 26, -82.5], [-27, 26, -13.5], null, Math.PI / 2 - .52, 0),
       choices: choices({t: full(use), coach: '<b>USE BY</b> is the date to check.'}, [
         {t: full(pack), coach: 'That is the day it was <b>packed</b>.', src: 'packed on'},
-        {t: md(use.getMonth(), Number(yy(use))), coach: `<b>${yy(use)}</b> is the <b>year</b>.`},
+        {t: mdYear(use.getMonth(), Number(yy(use)), use.getFullYear()), coach: `<b>${yy(use)}</b> is the <b>year</b>.`},
         {t: full(add(7 - ago + 7)), coach: 'Read the date under <b>USE BY</b>.'}])});
   }
 
@@ -294,9 +300,9 @@ export function rounds(kit, {today, rand}) {
     R4.push({name: 'Orange juice', newThing: 'no slashes', build, kw: 'EXP', clue: '<b>EXP</b>', dateText: digits, date: iso(d),
       parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-40, 185, -33], [40, 249, 0], null, 0, Math.PI),
       choices: choices({t: full(d), coach: `<b>${digits}</b> means ${p2(m + 1)} / ${p2(day)} / ${yy(d)}.`}, [
-        {t: md(m, Number(yy(d))), coach: `<b>${yy(d)}</b> is the <b>year</b>. Read it in twos: <b>${p2(m + 1)} / ${p2(day)} / ${yy(d)}</b>.`},
+        {t: mdYear(m, Number(yy(d)), d.getFullYear()), coach: `<b>${yy(d)}</b> is the <b>year</b>. Read it in twos: <b>${p2(m + 1)} / ${p2(day)} / ${yy(d)}</b>.`},
         {t: `${MONTH[m]} ${Number(yy(d))}, 20${p2(day)}`, coach: `Read it in twos: <b>month</b>, <b>day</b>, <b>year</b>.`},
-        {t: md(m, Number(sw.slice(2, 4)) || 1), coach: `Read it in twos: <b>${p2(m + 1)} / ${p2(day)} / ${yy(d)}</b>.`}])});
+        {t: mdYear(m, Number(sw.slice(2, 4)) || 1, d.getFullYear()), coach: `Read it in twos: <b>${p2(m + 1)} / ${p2(day)} / ${yy(d)}</b>.`}])});
   }
 
   /* ======================================================================================================
@@ -346,8 +352,8 @@ export function rounds(kit, {today, rand}) {
       parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-80, 0, -11], [32, 0, 23], null, -(Math.PI / 2 + .48), 0),
       choices: choices({t: full(d), coach: 'Here the <b>year</b> comes first.'}, [
         {t: `${MONTH[m]} ${Number(yy(d))}, 20${p2(day)}`, coach: 'Here the <b>year</b> comes first.'},
-        {t: md(hh - 1, mm), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
-        {t: md(m, Number(yy(d))), coach: `<b>${yy(d)}</b> is the <b>year</b>.`}])});
+        {t: mdYear(hh - 1, mm, d.getFullYear()), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
+        {t: mdYear(m, Number(yy(d)), d.getFullYear()), coach: `<b>${yy(d)}</b> is the <b>year</b>.`}])});
   }
 
   /* ======================================================================================================
@@ -453,7 +459,7 @@ export function rounds(kit, {today, rand}) {
       const Rd = RN + .1, DW = 24, DH = 13.6, dc = cv(DW, DH, 50), dx = dc.getContext('2d'), dyc = HS + 1.2 + DH / 2, dthL = DW / Rd, dth0 = -dthL / 2;
       kit.printOn(pkg, dx, dc, 'print', ink([[{t: dateText, k: 'date'}]], 1.2, .9, 4.2, 4.2));
       const cb = dots(dx, dc, code, 1.2, 8.2, 3, '#1E2433').box(0, code.length);
-      chunk(pkg, 'print', 'code', cb, {t: code, line: 1, h: 3, coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`});
+      chunk(pkg, 'print', 'code', cb, {t: code, line: 1, h: 3, tag: "dairy's code", coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`});
       const decal = new THREE.Mesh(new THREE.CylinderGeometry(MM(Rd), MM(Rd), MM(DH), 40, 1, true, dth0, dthL), decalMat(dc)); decal.position.y = MM(dyc);
       face(pkg, 'print', decal, dc, {map: cylMap(dc, Rd, DH, dyc, dth0, dthL), frame: cylFrame(dc, dth0, dthL), curved: true});
       inkParts(pkg, parts);
