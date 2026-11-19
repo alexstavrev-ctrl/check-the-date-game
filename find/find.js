@@ -6,7 +6,8 @@
    It reuses the Fun Friday engine by name (js/ff-engine.js through the game: sounds, tactile buttons, confetti, party,
    the game-show win, the narrator) and the game's look (css/ff-engine.css + css/game.css). Nothing is copied.
    It needs: js/ff-engine.js, js/winfx-astra.js, js/dotmatrix.js (DOTFONT) and js/game.js loaded first, and
-   find/three.module.min.js (three.js 0.160.0, loaded with import() inside start()).
+   find/three.module.min.js (three.js 0.160.0, loaded with import() inside start()) and the package pictures in find/art/
+   (classroom-assets group find-packages, loaded in start() with the fonts).
    It defines one name only: window.FindTheDate = {start(el, {level, round, today, rand, onExit}), stop()}.
    This is a public page: no student names or student data anywhere in it.
    ============================================================================================================ */
@@ -120,67 +121,236 @@ function printOn(P,x,c,face,sp){const k=c.k;P.spot=face;
     const kinds=ln.map(q=>q.k);P.lines.push({face,box:d.box(0,s.length),kinds,ok:kinds.includes('date')||kinds.includes('words'),line:li})});
   P.letter=sp.h;P.nlines=sp.lines.length}
 
-/* ---------- the three packages, at real size (the viz dev's drawings, same random seeds, same drawing order) ---------- */
-/* half-gallon gable-top milk carton: 95 x 95 mm, 195 mm body, 40 mm gable */
-function milk(pr,price){const R=rng(11),W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group,Q=boxQuads(MM(W),MM(H),MM(D));
-  const band=(x,c)=>{pencil(x,c,R,0,c.height*.46,c.width,c.height*.24,'#6FA2DA',1.3);x.save();x.strokeStyle='rgba(30,70,130,.7)';x.lineWidth=c.k*.8;x.beginPath();for(let i=0;i<=40;i++){x.lineTo(c.width*(.22+i*.014),c.height*.62+Math.sin(i*.6)*c.k*1.4)}x.stroke();x.restore()};
-  const face=(n,draw)=>{const c=cv(W,H,7),x=paper(c,R);band(x,c);draw(x,c);if(pr[n])printOn(P,x,c,n,pr[n]);edge(x,c,R);addQuad(P,n,Q[n],c)};
-  face('front',(x,c)=>{P.reg('front','name',txt(x,c,'MILK',W/2,H*.56,24,'#ffffff'));P.reg('front','size',txt(x,c,'1/2 GALLON (1.89 L)',W/2,H*.8,6,'#2E5A92'));txt(x,c,'Vitamin D',W/2,H*.2,7.5,'#2E5A92',{f:'Nunito',w:900});if(price)P.reg('front','price',sticker(x,c,R,W*.76,H*.33,12.5,'#F5A623',price))});
-  face('right',(x,c)=>{P.reg('right','nutrition',nutrition(x,c,10,12,W-20,[['Calories','130'],['Total Fat','5g'],['Sodium','120mg'],['Total Carb','12g'],['Protein','8g'],['Calcium','25%']]));txt(x,c,'KEEP REFRIGERATED',W/2,H*.86,4.2,'#2E5A92',{f:'Nunito',w:900})});
-  face('back',(x,c)=>{P.reg('back','upc',barcode(x,c,R,W*.3,H*.12,34,18,'0 70038 31250 9'));P.reg('back','name',txt(x,c,'MILK',W/2,H*.58,18,'#ffffff'));txt(x,c,'Grade A  Pasteurized',W/2,H*.84,4.4,'#2E5A92',{f:'Nunito',w:900})});
-  face('left',(x,c)=>{P.reg('left','name',txt(x,c,'MILK',W/2,H*.58,18,'#ffffff'));txt(x,c,'Please recycle',W/2,H*.86,4.2,'#2E5A92',{f:'Nunito',w:900})});
+/* ---------- the three packages (redesigned 11/19/2026 from real products, with invented brands). Flat printed colour and
+   crisp type in Baloo 2 and Nunito, all at real size (mm); the food pictures are Canva colored-pencil art from
+   classroom-assets (find/art/). Nothing printed on them reads like a date, a month or a clue word. ---------- */
+const ART={},ART_FILES={soup:'soup-bowl.webp',cereal:'cereal-bowl.webp',cow:'milk-cow.webp'};
+/* each picture's solid box in its 600 px file (from the cut-out), so a width in mm is the drawing's own width */
+const ART_TRIM={soup:[30,92,570,515],cereal:[59,40,575,553],cow:[37,55,562,564]};
+function loadArt(){return Promise.all(Object.keys(ART_FILES).map(n=>ART[n]?null:new Promise(ok=>{const im=new Image();
+  im.onload=()=>{ART[n]=im;ok()};im.onerror=()=>{console.error('Find the Date: a package picture did not load: art/'+ART_FILES[n]);ok()};
+  im.src=new URL('art/'+ART_FILES[n],HERE).href})))}
+function art(x,c,n,xm,ym,wm){const im=ART[n];if(!im)return null;const T=ART_TRIM[n],k=c.k,s=wm*k/(T[2]-T[0]),hh=(T[3]-T[1])*s;
+  x.drawImage(im,xm*k-(T[0]+(T[2]-T[0])/2)*s,ym*k-(T[1]+(T[3]-T[1])/2)*s,im.width*s,im.height*s);return[xm*k-wm*k/2,ym*k-hh/2,xm*k+wm*k/2,ym*k+hh/2]}
+/* printed text. size = font size in mm; o = {w weight, n (Nunito, else Baloo 2), a align, ls letter spacing (em), max width (mm, shrinks to fit),
+   st [colour, mm] an outline under the fill, rot (radians)}. Returns the box it covers, in canvas px */
+function pt(x,c,s,xm,ym,size,col,o){o=o||{};s=String(s);const k=c.k;let S=size*k;
+  const set=()=>{x.font=(o.w||800)+' '+S+'px '+(o.n?'Nunito':'"Baloo 2"')},wid=()=>x.measureText(s).width+(o.ls||0)*S*(s.length-1);
+  x.save();set();let w=wid();if(o.max&&w>o.max*k){S*=o.max*k/w;set();w=wid()}
+  const x0=o.a==='left'?0:o.a==='right'?-w:-w/2,top=-.42*S,bot=.42*S;
+  x.translate(xm*k,ym*k);if(o.rot)x.rotate(o.rot);x.textAlign='left';x.textBaseline='middle';
+  const run=f=>{if(!o.ls){f(s,x0);return}let cx=x0;for(const ch of s){f(ch,cx);cx+=x.measureText(ch).width+o.ls*S}};
+  if(o.st){x.strokeStyle=o.st[0];x.lineWidth=o.st[1]*2*k;x.lineJoin='round';run((t,a)=>x.strokeText(t,a,0))}
+  x.fillStyle=col;run((t,a)=>x.fillText(t,a,0));x.restore();
+  const cs=Math.cos(o.rot||0),sn=Math.sin(o.rot||0),P4=[[x0,top],[x0+w,top],[x0+w,bot],[x0,bot]].map(([u,v])=>[xm*k+u*cs-v*sn,ym*k+u*sn+v*cs]);
+  return[Math.min(...P4.map(p=>p[0])),Math.min(...P4.map(p=>p[1])),Math.max(...P4.map(p=>p[0])),Math.max(...P4.map(p=>p[1]))]}
+/* a block of small print that wraps at w mm. parts = [[text, bold], ...]; o = {lh line height, center} */
+function para(x,c,parts,xm,ym,wm,size,col,o){o=o||{};const k=c.k,S=size*k,lh=(o.lh||1.22)*S,W=wm*k;x.save();x.fillStyle=col;x.textBaseline='top';x.textAlign='left';
+  const F=b=>(b?900:700)+' '+S+'px Nunito',toks=[];parts.forEach(([t,b])=>String(t).split(/(\s+)/).forEach(w=>{if(w)toks.push([w,b])}));
+  const lines=[[]];let lw=0;for(const [t,b] of toks){x.font=F(b);const tw=x.measureText(t).width;if(/^\s+$/.test(t)){if(lw)lines[lines.length-1].push([' ',b,tw]),lw+=tw;continue}
+    if(lw+tw>W&&lw){const L=lines[lines.length-1];while(L.length&&L[L.length-1][0]===' ')L.pop();lines.push([]);lw=0}lines[lines.length-1].push([t,b,tw]);lw+=tw}
+  if(!o.dry)lines.forEach((L,i)=>{const tot=L.reduce((a,q)=>a+q[2],0);let cx=xm*k+(o.center?(W-tot)/2:0);for(const [t,b,tw] of L){x.font=F(b);x.fillText(t,cx,ym*k+i*lh);cx+=tw}});
+  x.restore();return[xm*k,ym*k,(xm+wm)*k,ym*k+lines.length*lh]}
+function rr(x,c,xm,ym,wm,hm,rm,fill,stroke,swm){const k=c.k,X=xm*k,Y=ym*k,w=wm*k,h=hm*k,r=Math.min(rm*k,w/2,h/2);x.beginPath();x.moveTo(X+r,Y);
+  x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();
+  if(fill){x.fillStyle=fill;x.fill()}if(stroke){x.strokeStyle=stroke;x.lineWidth=(swm||.4)*k;x.stroke()}return[X,Y,X+w,Y+h]}
+/* a real UPC-A bar code from 11 digits (the check digit is worked out), with its numbers under it */
+const UPC_L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+function upc(x,c,xm,ym,wm,hm,d11){const k=c.k,d=String(d11).replace(/\D/g,'').slice(0,11).split('').map(Number);let s=0;d.forEach((v,i)=>{s+=v*(i%2?1:3)});d.push((10-s%10)%10);
+  let bits='101';for(let i=0;i<6;i++)bits+=UPC_L[d[i]];bits+='01010';for(let i=6;i<12;i++)bits+=UPC_L[d[i]].replace(/./g,b=>b==='0'?'1':'0');bits+='101';
+  const m=wm/113,X=xm+9*m,hd=hm*.86,long=i=>i<10||(i>=45&&i<50)||i>=85;
+  x.save();x.fillStyle='#fff';x.fillRect((xm-1)*k,(ym-1.2)*k,(wm+2)*k,(hm+3.6)*k);x.fillStyle='#16181D';
+  for(let i=0;i<95;i++)if(bits[i]==='1')x.fillRect((X+i*m)*k,ym*k,m*k+.6,(long(i)?hm:hd)*k);
+  x.font='700 '+(hm*.15*k)+'px Nunito';x.textBaseline='top';x.textAlign='center';const ty=(ym+hd+.3)*k;
+  x.fillText(d.slice(1,6).join(''),(X+27*m)*k,ty);x.fillText(d.slice(6,11).join(''),(X+68*m)*k,ty);
+  x.font='700 '+(hm*.11*k)+'px Nunito';x.fillText(String(d[0]),(xm+4.5*m)*k,ty);x.fillText(String(d[11]),(xm+108.5*m)*k,ty);x.restore();
+  return[(xm-1)*k,(ym-1.2)*k,(xm+wm+1)*k,(ym+hm+2.4)*k]}
+/* the US Nutrition Facts panel, black on white. N = {serv, size, cal, rows:[[name, amount, %, indent, bold]], vit:[[name, amount, %]]} */
+function nfacts(x,c,xm,ym,wm,N,sc){sc=sc||1;const k=c.k,I='#16181D',X=xm*k,W=wm*k,pad=1.3*sc*k,
+    foot='* The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is the basis for general nutrition advice.';
+  const run=dry=>{let y=ym*k+pad;
+    const T=(s,px,py,sz,w,al)=>{if(dry)return;x.font=(w||700)+' '+sz*sc*k+'px Nunito';x.textAlign=al||'left';x.textBaseline='top';x.fillStyle=I;x.fillText(s,px,py)};
+    const bar=h=>{if(!dry){x.fillStyle=I;x.fillRect(X+pad,y,W-2*pad,h*sc*k)}y+=(h+.6)*sc*k};
+    T('Nutrition Facts',X+pad,y,6.2,900);y+=7*sc*k;bar(.25);T(N.serv,X+pad,y,2.5,700);y+=3.2*sc*k;
+    T('Serving size',X+pad,y,2.9,900);T(N.size,X+W-pad,y,2.9,900,'right');y+=3.6*sc*k;bar(1.8);
+    T('Amount per serving',X+pad,y,2.3,900);y+=2.7*sc*k;T('Calories',X+pad,y,5.2,900);T(N.cal,X+W-pad,y-.6*sc*k,6,900,'right');y+=6.2*sc*k;bar(1);
+    T('% Daily Value*',X+W-pad,y,2.3,900,'right');y+=2.9*sc*k;
+    N.rows.forEach(([n,a,p,ind,b])=>{bar(.15);const px=X+pad+(ind||0)*2.6*sc*k,bw=b===false?700:900;x.font=bw+' '+2.5*sc*k+'px Nunito';const nw=x.measureText(n+' ').width;
+      T(n,px,y,2.5,bw);T(a,px+nw,y,2.5,700);if(p)T(p,X+W-pad,y,2.5,900,'right');y+=3.1*sc*k});
+    bar(1.8);N.vit.forEach(([n,a,p],i)=>{if(i)bar(.15);T(n+' '+a,X+pad,y,2.5,700);T(p,X+W-pad,y,2.5,700,'right');y+=3.1*sc*k});bar(1);
+    return para(x,c,[[foot,false]],xm+1.3*sc,y/k,wm-2.6*sc,1.75*sc,I,{lh:1.18,dry})[3]+pad};
+  x.save();const h=run(true)-ym*k;x.fillStyle='#fff';x.fillRect(X,ym*k,W,h);x.strokeStyle=I;x.lineWidth=.3*k;x.strokeRect(X,ym*k,W,h);run(false);x.restore();
+  return[X,ym*k,X+W,ym*k+h]}
+/* a store's round price sticker */
+function priceDot(x,c,xm,ym,rm,price){const k=c.k,X=xm*k,Y=ym*k,r=rm*k;x.save();
+  x.shadowColor='rgba(40,20,0,.28)';x.shadowBlur=r*.14;x.shadowOffsetY=r*.05;x.fillStyle='#FF8B1E';x.beginPath();x.arc(X,Y,r,0,7);x.fill();x.shadowColor='transparent';
+  const g=x.createRadialGradient(X-r*.35,Y-r*.45,r*.05,X,Y,r);g.addColorStop(0,'rgba(255,255,255,.38)');g.addColorStop(.55,'rgba(255,255,255,0)');x.fillStyle=g;x.beginPath();x.arc(X,Y,r,0,7);x.fill();
+  x.strokeStyle='rgba(255,255,255,.8)';x.lineWidth=r*.045;x.beginPath();x.arc(X,Y,r*.87,0,7);x.stroke();x.restore();
+  pt(x,c,price,xm,ym+rm*.04,rm*.56,'#2B1300',{w:800,max:rm*1.55});return[X-r,Y-r,X+r,Y+r]}
+function snowflake(x,c,xm,ym,rm,col){const k=c.k;x.save();x.strokeStyle=col;x.lineWidth=rm*.16*k;x.lineCap='round';x.translate(xm*k,ym*k);
+  for(let i=0;i<6;i++){x.rotate(Math.PI/3);x.beginPath();x.moveTo(0,0);x.lineTo(0,-rm*k);x.moveTo(0,-rm*.55*k);x.lineTo(rm*.28*k,-rm*.8*k);x.moveTo(0,-rm*.55*k);x.lineTo(-rm*.28*k,-rm*.8*k);x.stroke()}x.restore()}
+function recycle(x,c,xm,ym,rm,col){const k=c.k;x.save();x.translate(xm*k,ym*k);x.strokeStyle=col;x.fillStyle=col;x.lineWidth=rm*.2*k;x.lineCap='round';x.lineJoin='round';
+  for(let i=0;i<3;i++){x.rotate(Math.PI*2/3);x.beginPath();x.arc(0,0,rm*.72*k,-Math.PI*.42,-Math.PI*.02);x.stroke();
+    const a=-Math.PI*.02,ax=Math.cos(a)*rm*.72*k,ay=Math.sin(a)*rm*.72*k;x.beginPath();x.moveTo(ax+rm*.26*k,ay-rm*.05*k);x.lineTo(ax-rm*.2*k,ay-rm*.12*k);x.lineTo(ax+.02*k,ay+rm*.3*k);x.closePath();x.fill()}x.restore()}
+/* a wavy band across a face: top edge at y0, bottom edge at y1 (mm), amplitude a */
+function waveBand(x,c,y0,y1,a,col,ph){const k=c.k,w=c.width;x.save();x.fillStyle=col;x.beginPath();x.moveTo(0,(y0+a*Math.sin(ph||0))*k);
+  for(let i=1;i<=60;i++){const u=i/60;x.lineTo(u*w,(y0+a*Math.sin((ph||0)+u*Math.PI*2.2))*k)}
+  for(let i=60;i>=0;i--){const u=i/60;x.lineTo(u*w,(y1+a*.6*Math.sin((ph||0)+1.3+u*Math.PI*1.8))*k)}x.closePath();x.fill();x.restore()}
+
+/* ---- half-gallon gable-top milk carton: 95 x 95 mm, 195 mm body, 40 mm gable. Brand: Sunny Fields (invented) ---- */
+const MILK_NF={serv:'8 servings per container',size:'1 cup (240mL)',cal:'120',
+  rows:[['Total Fat','5g','6%'],['Saturated Fat','3g','15%',1,false],['Trans Fat','0g','',1,false],['Cholesterol','20mg','7%'],['Sodium','120mg','5%'],
+    ['Total Carbohydrate','12g','4%'],['Total Sugars','12g','',1,false],['Protein','8g','']],
+  vit:[['Vitamin D','2.5mcg','15%'],['Calcium','310mg','25%'],['Potassium','400mg','8%']]};
+function milk(pr,price){const W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group,Q=boxQuads(MM(W),MM(H),MM(D));
+  const BL='#1F5FAE',INK='#123A6B',LB='#DCEAF8',GRN='#5AA149',SUN='#F6B93B',PAPER='#FFFFFF';
+  /* the brand: a sun over a green hill, then the name */
+  const logo=(x,c,cx,cy,s)=>{const k=c.k;x.save();x.translate(cx*k,(cy-6.5*s)*k);
+    x.strokeStyle=SUN;x.lineWidth=1.1*s*k;x.lineCap='round';for(let i=0;i<9;i++){const a=Math.PI*(1.05+i*.1125);x.beginPath();x.moveTo(Math.cos(a)*6.2*s*k,Math.sin(a)*6.2*s*k);x.lineTo(Math.cos(a)*8.6*s*k,Math.sin(a)*8.6*s*k);x.stroke()}
+    x.fillStyle=SUN;x.beginPath();x.arc(0,0,4.8*s*k,Math.PI,0);x.fill();
+    x.fillStyle=GRN;x.beginPath();x.moveTo(-11*s*k,1.2*s*k);x.quadraticCurveTo(-3*s*k,-3.4*s*k,11*s*k,.4*s*k);x.lineTo(11*s*k,1.6*s*k);x.lineTo(-11*s*k,1.6*s*k);x.closePath();x.fill();x.restore();
+    const a=pt(x,c,'Sunny Fields',cx,cy+3.6*s,9.4*s,BL,{w:800}),b=pt(x,c,'FARM FRESH',cx,cy+10.6*s,2.9*s,GRN,{n:1,w:900,ls:.2});
+    return[Math.min(a[0],(cx-11*s)*k),(cy-15.5*s)*k,Math.max(a[2],(cx+11*s)*k),b[3]]};
+  const face=(n,draw)=>{const c=cv(W,H,7),x=c.getContext('2d'),k=c.k;x.fillStyle=PAPER;x.fillRect(0,0,c.width,c.height);
+    x.fillStyle=BL;x.fillRect(0,0,c.width,3.2*k);x.fillRect(0,c.height-2.2*k,c.width,2.2*k);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,Q[n],c)};
+  face('front',(x,c,k)=>{P.reg('front','name',logo(x,c,W/2,24,1));
+    art(x,c,'cow',W/2,66.5,50);
+    x.fillStyle=LB;waveBand(x,c,99,160,2.4,LB,.4);waveBand(x,c,104,163,2.2,BL,1.1);
+    pt(x,c,'2%',W/2,124,25,'#fff',{w:800});P.reg('front','name',pt(x,c,'REDUCED FAT MILK',W/2,145.5,6.4,'#fff',{w:800,max:84,ls:.03}));
+    pt(x,c,'VITAMINS A & D',W/2,170,4.4,INK,{n:1,w:900,ls:.08});
+    P.reg('front','size',pt(x,c,'HALF GALLON (1.89 L)',W/2,182,5.4,BL,{w:800,max:84}));
+    if(price)P.reg('front','price',priceDot(x,c,80,47,10,price))});
+  face('right',(x,c,k)=>{const nb=P.reg('right','nutrition',nfacts(x,c,9,10,77,MILK_NF,1.12)).box;
+    para(x,c,[['INGREDIENTS: ',true],['REDUCED FAT MILK, VITAMIN A PALMITATE, VITAMIN D3.',false]],9,nb[3]/k+6,77,2.6,INK);
+    snowflake(x,c,15,163,3.2,BL);pt(x,c,'KEEP REFRIGERATED',21,163.3,4.6,BL,{a:'left',n:1,w:900});
+    pt(x,c,'GRADE A  ·  PASTEURIZED  ·  HOMOGENIZED',W/2,177,2.9,INK,{n:1,w:800,max:80})});
+  face('back',(x,c,k)=>{P.reg('back','name',logo(x,c,W/2,22,.8));
+    const fact=[['Milk has calcium and vitamin D. They help build strong bones and teeth.',false]],fh=para(x,c,fact,14,0,67,5,INK,{center:1,lh:1.22,dry:1})[3]/k;
+    rr(x,c,9,44,77,fh+28,5,LB);pt(x,c,'Did you know?',W/2,55,6.8,BL,{w:800});para(x,c,fact,14,64,67,5,INK,{center:1,lh:1.22});
+    art(x,c,'cow',W/2,(44+fh+28+122.8)/2,22);
+    P.reg('back','upc',upc(x,c,27,124,41,24,'07134231250'));
+    pt(x,c,'Sunny Fields Farms, Springfield',W/2,170,3,INK,{n:1,w:700})});
+  face('left',(x,c,k)=>{P.reg('left','name',logo(x,c,W/2,24,.8));
+    P.reg('left','name',pt(x,c,'2% MILK',W/2,74,15,BL,{w:800,max:80}));pt(x,c,'REDUCED FAT',W/2,90,4.6,INK,{n:1,w:900,ls:.12});
+    recycle(x,c,W/2,128,8.5,GRN);pt(x,c,'Please recycle this carton.',W/2,145,3.6,INK,{n:1,w:800})});
   const X=MM(W)/2,Z=MM(D)/2,Ht=MM(H),Gt=MM(G);
-  const roof=(n,p)=>{const c=cv(W,SLOPE,14),x=paper(c,R);pencil(x,c,R,0,0,c.width,c.height,'#BFD7F0',.55);if(pr[n])printOn(P,x,c,n,pr[n]);edge(x,c,R);addQuad(P,n,p,c)};
-  roof('roofF',[V(-X,Ht,Z),V(X,Ht,Z),V(X,Ht+Gt,0),V(-X,Ht+Gt,0)]);
+  const roof=(n,p,draw)=>{const c=cv(W,SLOPE,14),x=c.getContext('2d'),k=c.k;x.fillStyle=PAPER;x.fillRect(0,0,c.width,c.height);x.fillStyle=BL;x.fillRect(0,c.height-2.6*k,c.width,2.6*k);
+    if(draw)draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,p,c)};
+  roof('roofF',[V(-X,Ht,Z),V(X,Ht,Z),V(X,Ht+Gt,0),V(-X,Ht+Gt,0)],(x,c)=>{P.reg('roofF','name',logo(x,c,W/2,SLOPE*.5,.62))});
   roof('roofB',[V(X,Ht,-Z),V(-X,Ht,-Z),V(-X,Ht+Gt,0),V(X,Ht+Gt,0)]);
-  const tri=p=>{const c=cv(D,G,7),x=paper(c,R);pencil(x,c,R,0,0,c.width,c.height,'#BFD7F0',.55);const m=new THREE.Mesh(quadGeo(p),mat(c));m.userData.face='';g.add(m)};
+  const tri=p=>{const c=cv(D,G,5),x=c.getContext('2d');x.fillStyle='#F7FAFD';x.fillRect(0,0,c.width,c.height);const m=new THREE.Mesh(quadGeo(p),mat(c));m.userData.face='';g.add(m)};
   tri([V(X,Ht,Z),V(X,Ht,-Z),V(X,Ht+Gt,0),V(X,Ht+Gt,0)]);tri([V(-X,Ht,-Z),V(-X,Ht,Z),V(-X,Ht+Gt,0),V(-X,Ht+Gt,0)]);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(MM(W),MM(12),MM(3)),new THREE.MeshLambertMaterial({color:'#EEF3F9'}));fin.position.set(0,Ht+Gt+MM(6),0);fin.userData.face='';g.add(fin);
-  /* the bottom, drawn after the viz dev's faces so their pencil strokes stay the same; fine only when the date is printed there */
-  {const c=cv(W,D,pr.bottom?14:4),x=paper(c,R);pencil(x,c,R,0,0,c.width,c.height,'#BFD7F0',.4);if(pr.bottom)printOn(P,x,c,'bottom',pr.bottom);edge(x,c,R);addQuad(P,'bottom',Q.bottom,c)}
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(MM(W),MM(12),MM(3)),new THREE.MeshLambertMaterial({color:'#F2F6FB'}));fin.position.set(0,Ht+Gt+MM(6),0);fin.userData.face='';g.add(fin);
+  {const c=cv(W,D,pr.bottom?14:4),x=c.getContext('2d');x.fillStyle='#EEF2F7';x.fillRect(0,0,c.width,c.height);if(pr.bottom)printOn(P,x,c,'bottom',pr.bottom);addQuad(P,'bottom',Q.bottom,c)}
   P.cy=MM(H+G)/2;P.el=.3;P.noun='milk';P.where={roofB:'top',bottom:'bottom'}[P.spot]||'carton';return P}
 
-/* condensed soup can: 66 mm across, 101 mm tall */
-function can(pr,price){const R=rng(5),D=66,H=101,r=MM(D/2),P=newPkg('soup'),L=Math.PI*D;
-  const c=cv(L,H,7),x=paper(c,R,'#FBF5EA');
-  pencil(x,c,R,0,8*c.k,c.width,52*c.k,'#D9453B',1.4);pencil(x,c,R,0,60*c.k,c.width,6*c.k,'#E9B949',1.2);
-  for(let i=0;i<2;i++){const cx=L*(.25+i*.5);P.reg('label','name',txt(x,c,'SOUP',cx,30,22,'#FFF7EA'));txt(x,c,'TOMATO',cx,49,7,'#FFF7EA')}
-  P.reg('label','weight',txt(x,c,'NET WT 10.75 OZ (305g)',L*.25,80,3.4,'#7A2A22',{f:'Nunito',w:900}));txt(x,c,'CONDENSED',L*.75,80,4.2,'#7A2A22',{f:'Nunito',w:900});
-  P.reg('label','nutrition',nutrition(x,c,L*.52,68,24,[['Calories','90'],['Sodium','480mg'],['Sugars','12g']]));
-  P.reg('label','upc',barcode(x,c,R,L*.62,72,22,13,'0 51000 01251 7'));
-  if(price)P.reg('label','price',sticker(x,c,R,L*.36,20,9,'#F5A623',price));
-  x.strokeStyle='rgba(70,64,80,.5)';x.lineWidth=c.k*.5;x.strokeRect(0,2,c.width,c.height-4);
+/* ---- condensed soup can: 66 mm across, 101 mm tall; the label goes once round (207 mm). Brand: Simmer & Spoon (invented) ---- */
+const SOUP_NF={serv:'About 2.5 servings per container',size:'½ cup (120mL)',cal:'90',
+  rows:[['Total Fat','0g','0%'],['Sodium','480mg','21%'],['Total Carbohydrate','20g','7%'],['Total Sugars','12g','',1,false],['Protein','2g','']],
+  vit:[['Vitamin D','0mcg','0%'],['Calcium','20mg','2%'],['Iron','0.8mg','4%'],['Potassium','310mg','6%']]};
+function can(pr,price){const D=66,H=101,r=MM(D/2),P=newPkg('soup'),L=Math.PI*D,F=L/2;
+  const RED='#C2302A',RED2='#9E231F',CREAM='#FFF6E6',GOLD='#E2A93A',INK='#5A1A14',PALE='#FFE6B5';
+  const c=cv(L,H,9),x=c.getContext('2d'),k=c.k;x.fillStyle=CREAM;x.fillRect(0,0,c.width,c.height);
+  {const gr=x.createLinearGradient(0,0,0,50*k);gr.addColorStop(0,RED);gr.addColorStop(1,RED2);x.fillStyle=gr;x.fillRect(0,0,c.width,50*k)}
+  x.fillStyle=GOLD;x.fillRect(0,50*k,c.width,2.2*k);x.fillRect(0,3.4*k,c.width,.8*k);x.fillRect(0,c.height-3*k,c.width,.8*k);
+  /* the front (centre F) */
+  P.reg('label','name',pt(x,c,'Simmer & Spoon',F,10.5,6,PALE,{w:700}));
+  P.reg('label','name',pt(x,c,'TOMATO',F,26,15.5,'#fff',{w:800,ls:.02}));
+  P.reg('label','name',pt(x,c,'SOUP',F,41.5,8.6,PALE,{w:800,ls:.42}));
+  art(x,c,'soup',F+2,76.5,47);
+  rr(x,c,F-41,56,20,6.4,3.2,RED);pt(x,c,'CONDENSED',F-31,59.3,2.5,'#fff',{n:1,w:900,ls:.06});
+  P.reg('label','weight',pt(x,c,'NET WT 10.75 OZ (305g)',F-24,96.6,2.6,INK,{n:1,w:900}));
+  /* the right side: how to heat it */
+  pt(x,c,'Simmer & Spoon',L*.745,22,4.4,PALE,{w:700});
+  pt(x,c,'TO HEAT',L*.74,60,3.4,RED,{n:1,w:900,ls:.1});
+  para(x,c,[['Stir 1 can of soup and 1 can of water in a pot. Heat, stirring often.',false]],L*.74-14,64.5,28,2.5,INK,{center:1});
+  /* the back: nutrition facts and the bar code on the right of the seam, the ingredients on the left (the date stamp goes under them) */
+  P.reg('label','nutrition',nfacts(x,c,L-38,6,35,SOUP_NF,.6));
+  P.reg('label','upc',upc(x,c,L-36,64,27,18,'05143900251'));
+  pt(x,c,'Simmer & Spoon',L*.13,16,4.4,PALE,{w:700});
+  para(x,c,[['INGREDIENTS: ',true],['TOMATO PUREE (WATER, TOMATO PASTE), WATER, SUGAR, SALT, BASIL, ONION POWDER, GARLIC POWDER, CITRIC ACID.',false]],4,57,32,2.2,INK);
+  para(x,c,[['Simmer & Spoon Kitchens, Springfield',false]],L-37,87.5,29,2.2,INK,{center:1});
+  if(price)P.reg('label','price',priceDot(x,c,70,76,9,price));
   if(pr.label)printOn(P,x,c,'label',pr.label);
   /* the label wraps the can: canvas x 0..W goes once around, starting at the back (theta = pi); the front (+Z) is at x = W/2 */
   const side=new THREE.Mesh(new THREE.CylinderGeometry(r,r,MM(H),128,1,true,Math.PI),mat(c));side.position.y=MM(H)/2;
   const th=px=>Math.PI+px/c.width*Math.PI*2;
   addFace(P,'label',side,c,{curved:true,map:(px,py)=>{const t=th(px);return V(r*Math.sin(t),MM(H)*(1-py/c.height),r*Math.cos(t))},
     frame:px=>{const t=th(px);return{r:V(Math.cos(t),0,-Math.sin(t)),u:V(0,1,0),n:V(Math.sin(t),0,Math.cos(t))}}});
+  /* the steel ends: brushed metal with the rings a real lid has */
   const disc=(name)=>{const cc=cv(D,D,pr[name]?31:8),y=cc.getContext('2d'),s=cc.width;
-    const gr=y.createRadialGradient(s/2,s/2,s*.1,s/2,s/2,s/2);gr.addColorStop(0,'#D9DDE3');gr.addColorStop(.8,'#C3C8D0');gr.addColorStop(1,'#9EA4AE');y.fillStyle=gr;y.fillRect(0,0,s,s);
-    y.strokeStyle='rgba(80,86,98,.55)';[.47,.43,.36].forEach(f=>{y.lineWidth=cc.k*.5;y.beginPath();y.arc(s/2,s/2,s*f,0,7);y.stroke()});
+    const gr=y.createRadialGradient(s*.42,s*.4,s*.05,s/2,s/2,s/2);gr.addColorStop(0,'#EEF1F4');gr.addColorStop(.62,'#D3D8DE');gr.addColorStop(.9,'#BAC0C8');gr.addColorStop(1,'#9AA1AB');y.fillStyle=gr;y.fillRect(0,0,s,s);
+    y.strokeStyle='rgba(84,90,102,.5)';[.475,.45,.4,.33].forEach((f,i)=>{y.lineWidth=cc.k*(i?.35:.6);y.beginPath();y.arc(s/2,s/2,s*f,0,7);y.stroke()});
+    y.strokeStyle='rgba(255,255,255,.55)';[.462,.392].forEach(f=>{y.lineWidth=cc.k*.35;y.beginPath();y.arc(s/2,s/2,s*f,Math.PI*1.05,Math.PI*1.7);y.stroke()});
     if(pr[name])printOn(P,y,cc,name,pr[name]);return cc};
   const tc=disc('top'),top=new THREE.Mesh(new THREE.CircleGeometry(r,128),mat(tc));top.rotation.x=-Math.PI/2;top.position.y=MM(H);
   addFace(P,'top',top,tc,{ring:1,map:(px,py)=>V((px/tc.width-.5)*2*r,MM(H),-(.5-py/tc.height)*2*r),frame:()=>({r:V(1,0,0),u:V(0,0,-1),n:V(0,1,0)})});
   const bc=disc('bottom'),bot=new THREE.Mesh(new THREE.CircleGeometry(r,128),mat(bc));bot.rotation.x=Math.PI/2;
   addFace(P,'bottom',bot,bc,{ring:1,map:(px,py)=>V((px/bc.width-.5)*2*r,0,(.5-py/bc.height)*2*r),frame:()=>({r:V(1,0,0),u:V(0,0,1),n:V(0,-1,0)})});
   P.faces.top.ring=P.faces.bottom.ring=true;
+  /* the rolled steel rims at both ends (not tappable) */
+  const rimM=new THREE.MeshLambertMaterial({color:'#C9CED6'});[0,MM(H)].forEach(yy=>{const t=new THREE.Mesh(new THREE.TorusGeometry(r-MM(.4),MM(1.1),10,96),rimM);t.rotation.x=Math.PI/2;t.position.y=yy;t.userData.face='';P.group.add(t)});
   P.cy=MM(H)/2;P.el=.2;P.where={bottom:'bottom',top:'top',label:'label'}[P.spot]||'can';return P}
 
-/* 12 oz cereal box: 193 x 284 x 66 mm */
+/* ---- 12 oz cereal box: 193 x 284 x 66 mm. Brand: Bright Morning (invented) ---- */
+const CEREAL_NF={serv:'About 12 servings per container',size:'1 cup (28g)',cal:'110',
+  rows:[['Total Fat','2g','3%'],['Saturated Fat','0g','0%',1,false],['Trans Fat','0g','',1,false],['Cholesterol','0mg','0%'],['Sodium','140mg','6%'],
+    ['Total Carbohydrate','22g','8%'],['Dietary Fiber','3g','11%',1,false],['Total Sugars','6g','',1,false],['Protein','3g','']],
+  vit:[['Vitamin D','2mcg','10%'],['Calcium','100mg','8%'],['Iron','8mg','45%'],['Potassium','110mg','2%']]};
 function cereal(pr,price){const R=rng(21),W=193,H=284,D=66,P=newPkg('cereal'),Q=boxQuads(MM(W),MM(H),MM(D));
-  const face=(n,fw,fh,draw,k)=>{const c=cv(fw,fh,k||6),x=paper(c,R,'#FFF8E6');draw(x,c);if(pr[n])printOn(P,x,c,n,pr[n]);edge(x,c,R);addQuad(P,n,Q[n],c)};
-  face('front',W,H,(x,c)=>{const k=c.k;pencil(x,c,R,0,0,c.width,c.height,'#F2C14E',1.2);
-    P.reg('front','name',txt(x,c,'OAT',W/2,40,46,'#9C3D12'));P.reg('front','name',txt(x,c,'RINGS',W/2,78,46,'#9C3D12'));
-    const cx=W/2*k,cy=H*.6*k,bw=W*.36*k;pencil(x,c,R,cx-bw,cy-H*.02*k,2*bw,H*.24*k,'#5B8FD1',1.4,y=>{y.ellipse(cx,cy,bw,H*.2*k,0,0,Math.PI)});
-    for(let i=0;i<26;i++){const a=R()*Math.PI*2,rr=R()*bw*.8;const px=cx+Math.cos(a)*rr,py=cy+Math.sin(a)*rr*.22-k*4;x.strokeStyle='#C57A2A';x.lineWidth=k*2.2;x.beginPath();x.arc(px,py,k*4,0,7);x.stroke()}
-    P.reg('front','weight',txt(x,c,'NET WT 12 OZ (340g)',W/2,H*.93,5.5,'#6B3410',{f:'Nunito',w:900}));if(price)P.reg('front','price',sticker(x,c,R,W*.8,H*.42,14,'#F08A3E',price))});
-  face('right',D,H,(x,c)=>{pencil(x,c,R,0,0,c.width,c.height,'#F2C14E',.8);P.reg('right','nutrition',nutrition(x,c,4,14,D-8,[['Calories','140'],['Total Fat','2.5g'],['Sodium','190mg'],['Total Carb','29g'],['Fiber','4g'],['Sugars','1g'],['Protein','5g'],['Iron','45%'],['Vitamin D','10%'],['Calcium','10%']]));
-    txt(x,c,'Serving 1 cup (28g)',D/2,H*.62,3.4,'#6B3410',{f:'Nunito',w:900});txt(x,c,'Servings about 12',D/2,H*.66,3.4,'#6B3410',{f:'Nunito',w:900})});
-  face('left',D,H,(x,c)=>{pencil(x,c,R,0,0,c.width,c.height,'#F2C14E',.8);P.reg('left','name',txt(x,c,'OAT RINGS',D/2,H/2,20,'#9C3D12',{rot:-Math.PI/2}))});
-  face('back',W,H,(x,c)=>{const k=c.k;pencil(x,c,R,0,0,c.width,c.height,'#F7D98A',.8);txt(x,c,'MAZE!',W/2,30,26,'#9C3D12');x.strokeStyle='#9C3D12';x.lineWidth=k*1.6;for(let i=0;i<6;i++){x.strokeRect(k*W*(.2+i*.03),k*H*(.2+i*.03),k*W*(.6-i*.06),k*H*(.45-i*.06))}P.reg('back','upc',barcode(x,c,R,W*.34,H*.8,36,20,'0 16000 27547 3'))});
-  face('bottom',W,D,(x,c)=>{pencil(x,c,R,0,0,c.width,c.height,'#F2C14E',.6)});
-  face('top',W,D,(x,c)=>{const k=c.k;pencil(x,c,R,0,0,c.width,c.height,'#F2C14E',.7);x.strokeStyle='rgba(120,70,20,.55)';x.lineWidth=k*.5;x.beginPath();x.moveTo(0,c.height*.5);x.lineTo(c.width,c.height*.5);x.stroke()},pr.top?20:6);
+  const Y1='#FFD34D',Y2='#FFC531',BLU='#2C62B4',BRN='#6B3210',RED='#D7372C',CRM='#FFF5D9',GRN='#3E9A4F';
+  const face=(n,fw,fh,draw,ppm)=>{const c=cv(fw,fh,ppm||6),x=c.getContext('2d'),k=c.k;x.fillStyle=Y1;x.fillRect(0,0,c.width,c.height);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,Q[n],c)};
+  /* the brand: a red rounded badge with a small sun */
+  const brand=(x,c,cx,cy,s)=>{const b=rr(x,c,cx-30*s,cy-8.5*s,60*s,17*s,8.5*s,RED);const k=c.k;
+    x.save();x.fillStyle=Y1;x.beginPath();x.arc((cx-21.5*s)*k,(cy+.2*s)*k,3.6*s*k,0,7);x.fill();x.strokeStyle=Y1;x.lineWidth=.9*s*k;x.lineCap='round';
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;x.beginPath();x.moveTo((cx-21.5*s)*k+Math.cos(a)*4.9*s*k,(cy+.2*s)*k+Math.sin(a)*4.9*s*k);x.lineTo((cx-21.5*s)*k+Math.cos(a)*6.4*s*k,(cy+.2*s)*k+Math.sin(a)*6.4*s*k);x.stroke()}x.restore();
+    pt(x,c,'Bright Morning',cx+6.5*s,cy+.8*s,7.6*s,'#fff',{w:800,max:40*s});return b};
+  face('front',W,H,(x,c,k)=>{
+    /* sun rays from behind the bowl */
+    const ox=W/2*k,oy=176*k;for(let i=0;i<28;i++){const a0=i/28*Math.PI*2,a1=(i+.5)/28*Math.PI*2;x.fillStyle=Y2;x.beginPath();x.moveTo(ox,oy);x.lineTo(ox+Math.cos(a0)*400*k,oy+Math.sin(a0)*400*k);x.lineTo(ox+Math.cos(a1)*400*k,oy+Math.sin(a1)*400*k);x.closePath();x.fill()}
+    {const g2=x.createRadialGradient(ox,oy,10*k,ox,oy,120*k);g2.addColorStop(0,'rgba(255,250,225,.95)');g2.addColorStop(1,'rgba(255,250,225,0)');x.fillStyle=g2;x.fillRect(0,0,c.width,c.height)}
+    P.reg('front','name',brand(x,c,W/2,20,1));
+    P.reg('front','name',pt(x,c,'HONEY',W/2,47,15,RED,{w:800,ls:.3,st:['#fff',1.6]}));
+    P.reg('front','name',pt(x,c,'OAT RINGS',W/2,77,38,BRN,{w:800,max:180,st:['#fff',2.4]}));
+    art(x,c,'cereal',W/2,182,150);
+    pt(x,c,'Serving suggestion',W/2+52,242,2.6,BRN,{n:1,w:700});
+    /* badges */
+    x.save();x.fillStyle=GRN;x.beginPath();x.arc(34*k,118*k,17*k,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=.8*k;x.beginPath();x.arc(34*k,118*k,15*k,0,7);x.stroke();x.restore();
+    pt(x,c,'WHOLE',34,111.5,5,'#fff',{w:800});pt(x,c,'GRAIN',34,118,5,'#fff',{w:800});pt(x,c,'OATS',34,124.6,5,'#fff',{w:800});
+    x.fillStyle=BLU;x.fillRect(0,258*k,c.width,26*k);x.fillStyle='#fff';x.fillRect(0,257*k,c.width,1.2*k);
+    P.reg('front','weight',pt(x,c,'NET WT 12 OZ (340g)',10,271,5.4,'#fff',{a:'left',n:1,w:900}));
+    pt(x,c,'Good source of fiber',W-10,271,5.4,'#FFE38A',{a:'right',n:1,w:900});
+    if(price)P.reg('front','price',priceDot(x,c,W*.82,H*.42,14,price))});
+  face('right',D,H,(x,c,k)=>{x.fillStyle=BLU;x.fillRect(0,258*k,c.width,26*k);
+    const nb=P.reg('right','nutrition',nfacts(x,c,4,8,D-8,CEREAL_NF,1)).box,iy=nb[3]/k+5;
+    const ib=para(x,c,[['INGREDIENTS: ',true],['WHOLE GRAIN OATS, SUGAR, HONEY, CORN STARCH, SALT. VITAMIN E ADDED TO KEEP IT FRESH.',false]],4.5,iy,D-9,2.6,BRN);
+    /* the note box fits its words and sits in the middle of the space left above the blue band */
+    const msg=[['Start your day with a bowl of Honey Oat Rings, cold milk and fruit.',false]],th=para(x,c,msg,10,0,D-20,3.6,BRN,{center:1,lh:1.25,dry:1})[3]/k,
+      bh=th+23,by=Math.max(ib[3]/k+8,(ib[3]/k+258-bh)/2);
+    rr(x,c,5,by,D-10,bh,5,'#fff');pt(x,c,'Good morning!',D/2,by+9,6.4,RED,{w:800});
+    para(x,c,msg,10,by+16,D-20,3.6,BRN,{center:1,lh:1.25})});
+  face('left',D,H,(x,c,k)=>{x.fillStyle=BLU;x.fillRect(0,258*k,c.width,26*k);
+    P.reg('left','name',brand(x,c,D/2,22,.92));
+    P.reg('left','name',pt(x,c,'OAT RINGS',D/2,108,24,BRN,{w:800,rot:-Math.PI/2,st:['#fff',1.4]}));
+    pt(x,c,'HONEY',D/2+19.5,108,6.4,RED,{w:800,rot:-Math.PI/2,ls:.25});
+    para(x,c,[['Bright Morning Foods',true],[' Springfield',false]],6,186,D-12,2.6,BRN,{center:1})});
+  face('back',W,H,(x,c,k)=>{x.fillStyle=CRM;x.fillRect(0,0,c.width,c.height);x.fillStyle=BLU;x.fillRect(0,258*k,c.width,26*k);
+    P.reg('back','name',brand(x,c,W/2,18,.9));
+    pt(x,c,'MAZE TIME!',W/2,41,15,BRN,{w:800,st:['#fff',1.2]});pt(x,c,'Help the oat ring find the bowl.',W/2,55,5.2,BLU,{n:1,w:800});
+    /* a real maze (a random walk that carves every cell), drawn in brown */
+    const cols=8,rows=9,cw=16,mx=W/2-cols*cw/2,my=66,wall=[];for(let i=0;i<cols*rows;i++)wall.push([1,1,1,1]);const seen=new Set([0]),st=[0];
+    while(st.length){const cur=st[st.length-1],cx=cur%cols,cy=Math.floor(cur/cols),nb=[[0,-1,0,2],[1,0,1,3],[0,1,2,0],[-1,0,3,1]].filter(([dx,dy])=>{const nx=cx+dx,ny=cy+dy;return nx>=0&&ny>=0&&nx<cols&&ny<rows&&!seen.has(ny*cols+nx)});
+      if(!nb.length){st.pop();continue}const [dx,dy,a,b]=nb[Math.floor(R()*nb.length)],nx=(cy+dy)*cols+cx+dx;wall[cur][a]=0;wall[nx][b]=0;seen.add(nx);st.push(nx)}
+    wall[0][3]=0;wall[cols*rows-1][1]=0;
+    rr(x,c,mx-4,my-4,cols*cw+8,rows*cw+8,4,'#fff');x.save();x.strokeStyle=BRN;x.lineWidth=1.6*k;x.lineCap='round';x.beginPath();
+    for(let i=0;i<cols*rows;i++){const X0=(mx+(i%cols)*cw)*k,Y0=(my+Math.floor(i/cols)*cw)*k,s=cw*k,w4=wall[i];
+      if(w4[0]){x.moveTo(X0,Y0);x.lineTo(X0+s,Y0)}if(w4[1]){x.moveTo(X0+s,Y0);x.lineTo(X0+s,Y0+s)}if(w4[2]){x.moveTo(X0,Y0+s);x.lineTo(X0+s,Y0+s)}if(w4[3]){x.moveTo(X0,Y0);x.lineTo(X0,Y0+s)}}x.stroke();
+    x.strokeStyle='#D9962B';x.lineWidth=2.6*k;x.beginPath();x.arc((mx-8)*k,(my+cw/2)*k,4*k,0,7);x.stroke();x.restore();
+    art(x,c,'cereal',mx+cols*cw+15.5,my+rows*cw-cw/2,22);
+    P.reg('back','upc',upc(x,c,W-58,224,44,20,'08423657003'))},6);
+  face('bottom',W,D,(x,c,k)=>{brand(x,c,W/2,D/2,.9)},4);
+  face('top',W,D,(x,c,k)=>{x.fillStyle=Y2;x.fillRect(0,0,c.width,1.2*k);x.fillRect(0,c.height-1.2*k,c.width,1.2*k);
+    P.reg('top','name',brand(x,c,W-38,D/2,.75))},pr.top?20:6);
   P.cy=MM(H)/2;P.el=.24;P.where={top:'top flap',left:'side',bottom:'bottom'}[P.spot]||'box';return P}
 const BUILD={milk,can,cereal};
 
@@ -260,11 +430,19 @@ function makeRounds(L,today,rnd){if(LEVELS[L].l4)return rounds4(today,rnd);const
   })}
 /* ---------- Level 4 comes from find/level4.js (the messy-dates thread), drawn with this kit (README: Level 4 contract) ---------- */
 let L4MOD=null;
-const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,tex,quadGeo,quadMap,quadFrame,boxQuads,MM,V,THREE,newPkg,addQuad,addFace,printOn});
+const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,tex,quadGeo,quadMap,quadFrame,boxQuads,MM,V,THREE,newPkg,addQuad,addFace,printOn,
+  /* the print look of the redesigned packages (11/19): crisp type, a real UPC-A, the US Nutrition Facts panel, a round price sticker */
+  pt,para,rr,upc,nfacts,priceDot,waveBand,snowflake,recycle,
+  /* art(x,c,name,xm,ym,wm): a package picture from find/art/, its solid part wm mm wide, centred at (xm,ym); null if it did not load */
+  art});
 /* level4.js and its look, level4.css (every rule under #find .fd-l4), load the first time someone picks Level 4 */
 function loadCSS4(){return new Promise(ok=>{if(document.querySelector('link[data-fd-l4]'))return ok();const l=document.createElement('link');l.rel='stylesheet';
   l.href=new URL('level4.css',HERE).href;l.setAttribute('data-fd-l4','');l.onload=()=>ok();l.onerror=()=>{console.error('Find the Date: level4.css could not load.');ok()};document.head.appendChild(l)})}
-async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js',HERE).href),loadCSS4()]);L4MOD=r[0]}return L4MOD}
+async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js',HERE).href),loadCSS4()]);
+    /* Level 4's own package pictures: level4.js may export art = {name: {file: 'name.webp', trim: [x0,y0,x1,y1]}} (files in find/art/,
+       trim = the solid box in the 600 px file). They load here, before any build(), so kit.art() can draw them */
+    const A=r[0].art;if(A&&typeof A==='object'){for(const n of Object.keys(A))if(!ART_FILES[n]&&A[n]&&A[n].file){ART_FILES[n]=A[n].file;ART_TRIM[n]=A[n].trim||[0,0,600,600]}await loadArt()}
+    L4MOD=r[0]}return L4MOD}
 function rounds4(today,rnd){const kit=KIT(),rs=L4MOD.rounds(kit,{today,rand:rnd});
   return rs.map((r,idx)=>{const right=r.choices.find(c=>c.ok);if(!right)throw new Error('Level 4 round '+(idx+1)+' has no right answer');
     return{L:3,idx,rd:{start:r.start||null,kw:r.kw||null},date:null,ds:r.dateText,choices:r.choices.map(c=>({t:c.t,ok:!!c.ok,coach:c.coach||'',src:c.ok?'':(c.src||'date')})),
@@ -794,7 +972,8 @@ function Activity(el,o){
       pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);
       /* the fewest turns among the poses that show it nearly as well as the best one */
       const top=Math.max(...best.map(o=>o.d));return best.filter(o=>o.d>=top-.04).sort((a,b)=>Math.abs(a.k)+Math.abs(a.t)-Math.abs(b.k)-Math.abs(b.t))[0]},
-    spin,tip,closer,rounds:()=>ROUNDS.map(r=>({date:r.ds,pk:r.rd.pk,spot:r.rd.spot,choices:r.choices.map(c=>(c.ok?'*':'')+c.t)}))};
+    spin,tip,closer,rounds:()=>ROUNDS.map(r=>({date:r.ds,pk:r.rd.pk,spot:r.rd.spot,choices:r.choices.map(c=>(c.ok?'*':'')+c.t)})),
+    faces:()=>P?Object.fromEntries(Object.entries(P.faces).map(([n,f])=>[n,f.c.toDataURL('image/png')])):null};
   return{begin(){startLevel(level,round)},destroy,test}
 }
 
@@ -805,7 +984,7 @@ function fail(el,o){el.innerHTML='<div class="fd-root fd-err"><p>Find the Date! 
 async function start(el,o){stop();const my=++token;o=o||{};if(!el)return;el.innerHTML='';
   try{if(!THREE)THREE=await import(new URL('three.module.min.js',HERE).href);
     if(+o.level===3)await loadL4();
-    await Promise.all(['800 40px "Baloo 2"','900 20px Nunito','800 20px Nunito','700 20px Nunito'].map(f=>document.fonts.load(f).catch(()=>null)))}
+    await Promise.all(['800 40px "Baloo 2"','700 40px "Baloo 2"','900 20px Nunito','800 20px Nunito','700 20px Nunito'].map(f=>document.fonts.load(f).catch(()=>null)).concat(loadArt()))}
   catch(e){console.error('Find the Date:',e);if(my===token)fail(el,o);return}
   if(my!==token)return;
   try{RUN=Activity(el,o);RUN.begin()}catch(e){console.error('Find the Date:',e);if(RUN){try{RUN.destroy()}catch(_){}}RUN=null;fail(el,o)}}

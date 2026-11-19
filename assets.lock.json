@@ -3,7 +3,7 @@
  "game": "check-the-date-game",
  "library": {
   "repo": "alexstavrev-ctrl/classroom-assets",
-  "commit": "68e4f4c057842e73e7cbd5da49ff7bd7709861df"
+  "commit": "4ef31bb147c0dc24026b15df30c42f444c00874e"
  },
  "approved_baseline": {},
  "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
@@ -146,6 +146,42 @@
    ],
    "ref": "assets/star.png",
    "screens": ""
+  },
+  "find/art/cereal-bowl.webp": {
+   "asset": "find-pkg.cereal-bowl",
+   "version": 1,
+   "lib": "images/find-packages/web/cereal-bowl.webp",
+   "sha256": "e64a9ecc77af8b55fa87b1f4aec4cf7f86b9b0d3c89978dc80716213f3da20fc",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "cereal-bowl.webp",
+   "screens": "Find the Date!: the Bright Morning cereal box (front, and small at the end of the maze on the back), Levels 1 to 3"
+  },
+  "find/art/milk-cow.webp": {
+   "asset": "find-pkg.milk-cow",
+   "version": 1,
+   "lib": "images/find-packages/web/milk-cow.webp",
+   "sha256": "795e45afc7b5d4d5b6cae1d80d1ec2453145ba01c9bab956087379aacc0c23cc",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "milk-cow.webp",
+   "screens": "Find the Date!: the Sunny Fields milk carton (front), Levels 1 to 3"
+  },
+  "find/art/soup-bowl.webp": {
+   "asset": "find-pkg.soup-bowl",
+   "version": 1,
+   "lib": "images/find-packages/web/soup-bowl.webp",
+   "sha256": "085df017ce580db0618a2d600575410bf4de3e58ec4b4963c24e13d1edfd8f28",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "soup-bowl.webp",
+   "screens": "Find the Date!: the Simmer & Spoon soup can (front of the label), Levels 1 to 3"
   }
  },
  "inline": [],

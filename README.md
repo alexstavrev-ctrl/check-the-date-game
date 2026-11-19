@@ -25,8 +25,10 @@ No date is ever equal to today, and the game uses the real date of the day it is
 The level pick also opens Find the Date! (folder `find/`, Levels 1 to 4): turn a 3D package, find where the date is
 printed, then say what it says. It was built as its own part and plugs in with one call,
 `FindTheDate.start(section, {level, round, today, rand, onExit})`, and `FindTheDate.stop()`. The packages are drawn in
-code; three.js r160 is self-hosted in `find/` with its licence. Testing address: `?screen=find&level=1&round=1`
-(with `&today=` and `&seed=` as usual).
+code with a few Canva colored-pencil pictures on them (`find/art/`, from classroom-assets group find-packages, listed in
+`assets.lock.json`); a finger or the mouse can push, spin and catch a package (off with less motion). three.js r160 is
+self-hosted in `find/` with its licence. Testing address: `?screen=find&level=1&round=1` (with `&today=` and `&seed=`
+as usual).
 
 ## What comes from the Fun Friday game
 
