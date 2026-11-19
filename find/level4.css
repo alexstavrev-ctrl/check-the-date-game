@@ -1,0 +1,37 @@
+/* Find the Date! Level 4 (messy dates): the Level 4 switches. Viz dev approved 11/19/2026.
+   Active only inside the Level 4 root: every rule starts with "#find .fd-l4", so Levels 1 to 3 keep the v3 look.
+   Names are the build's fd- names: .fd-answers .fd-qq .choice.fd-a .fd-tag .fd-rb .fd-inset .fd-cap2.
+   Variables: --u --go --blue --ink --display (game), --amber (#F0901E, on the Find the Date root).
+   Pictures: find-the-date-hard-vizdev/tv-3-level-4-crackers-say-it-try-again.png (amber + part tags),
+             tv-4-level-4-spaghetti-say-it-right.png (green + stamp), tv-2-level-4-deli-closer-not-that-one.png (Closer + inset).
+   Tested screens for all six rounds: find-the-date-hard-build/pictures/. Rules in README.md. */
+
+/* 1. Say it: the coaching line sits inside the answer card. After a pick, .fd-qq is replaced by
+      <span class="t">Not that one.</span>{choice.coach}   wrong pick: the picked .choice.fd-a gets .amber; the student picks again
+      <span class="t">You got it!</span>{choice.coach}      right pick: .fd-qq gets .go and the picked .choice.fd-a gets .go */
+#find .fd-l4 .fd-answers .fd-qq .t{color:#B5620A;margin-right:.3em}
+#find .fd-l4 .fd-answers .fd-qq.go .t{color:var(--go)}
+#find .fd-l4 .fd-answers .fd-qq b{color:var(--blue)}
+#find .fd-l4 .choice.fd-a{position:relative}
+#find .fd-l4 .choice.fd-a.amber{border-color:var(--amber);background:#FFF4E5;box-shadow:0 0 0 calc(var(--u)*.6) rgba(240,144,30,.18),0 calc(var(--u)*.5) 0 rgba(18,48,92,.18)}
+#find .fd-l4 .choice.fd-a.go{border-color:var(--go);background:#E6F8EE;box-shadow:0 0 0 calc(var(--u)*1.1) rgba(31,163,91,.2),0 calc(var(--u)*.5) 0 rgba(18,48,92,.18);padding-right:calc(var(--u)*3.2)}
+/* the Fun Friday check stamp on the right answer */
+#find .fd-l4 .choice.fd-a.go::before{content:"\2713";position:absolute;z-index:1;top:calc(var(--u)*-2.4);right:calc(var(--u)*-2.4);width:calc(var(--u)*5.4);height:calc(var(--u)*5.4);border-radius:50%;background:var(--go);color:#fff;border:calc(var(--u)*.5) solid #fff;box-sizing:border-box;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.8);line-height:1}
+
+/* 2. After a wrong pick in Say it, the close look shows where the mistake came from (choice.src):
+      src 'date': one small amber tag under each part of the date (round.parts; boxes in the date chunk's partBoxes),
+         centred under that part, var(--u)*1.6 below it. Markup: <span class="fd-tag part">year</span>
+         Veil: a printed line the part tags would cover gets a white veil (polygon fill rgba(255,255,255,.78), no stroke,
+         the line's box grown by U*.9) and loses its dashed outline and tag while the part tags show.
+      src 'time' / 'code' / 'packed on': no part tags and no veil. That line (the chunk with k = src on the date's face, or
+         the reg with what = src) gets the amber outline (fill rgba(240,144,30,.12), stroke var(--amber), width U*.5, pad U*.9)
+         and its tag turns amber (.fd-tag.amber), so the coaching line points at something the student can see. */
+#find .fd-l4 .fd-tag.part{color:#B5620A;font-size:calc(var(--u)*1.6);border:calc(var(--u)*.2) solid rgba(240,144,30,.55)}
+
+/* 3. Closer in Find it: the Closer button is already dark while aria-pressed="true" (all levels, as in v3). For Level 4 the
+      small whole-package .fd-inset shows during the close look too, captioned "looking here" (.fd-cap2), with a blue dashed
+      mark over the part in view: fill rgba(31,111,214,.12), stroke #1F6FD6, stroke-width U*.4, dash U*.9 U*.6.
+   4. Found mark (Level 4): outline pad U*.6 (not 1.4). The check (r = U*1.9) sits to the right of the date, level with it:
+      centre y = the outline's middle; centre x = r*1.15 past the outline's right edge, or past the right edge of any printed
+      line on that face that reaches into the band from centre y - r to centre y + r, whichever is further right.
+      So it never covers a digit, the clue words above or the line under it. Both are drawn in JS. */

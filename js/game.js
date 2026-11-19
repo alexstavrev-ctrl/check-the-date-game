@@ -3,7 +3,8 @@
    (js/ff-engine.js, an exact copy: sounds, tactile buttons, confetti, flying star, cheer line, round stamps, game-show win,
    narrator, opening page; Alex 11/19: "copy the entire game engine and framework of the fun friday game"). This file holds
    only what is new: the dates, the rounds, the calendar, the phone and the feedback. Pictures: Canva colored pencil,
-   from the classroom-assets library.
+   from the classroom-assets library. Level 1 (Alex 11/19, 20:24 UTC): one food at a time, "Is it expired or not?".
+   Find the Date! (find/, built by its own thread, see find/README.md) starts from the level pick.
    This is a public page: no student names or student data anywhere in it. */
 'use strict';
 /* From the engine: $, i (the round, 0-5), done (rounds won), easy (hint on), sound, calm, unit, SFX, say, stamps, burst,
@@ -53,9 +54,11 @@ const FOODS={
    kinds: pastM = earlier this month, yest = yesterday, futM = later this month, soon = tomorrow,
           prevM = last month (day number bigger than today's), nextM = next month (day number smaller),
           nextY = next year (month number smaller), prevY = last year (month number bigger).
-   Round 1 of each level is the "Do it together" round and keeps the order of the approved sample page. */
+   Round 1 of each level is the "Do it together" round and keeps the order of the approved sample page.
+   Level 1 shows one food a round (Alex 11/19): round 1 is expired (the class does it together), then 2 more expired and
+   3 still good in a new order each time, never 3 the same in a row (l1Kinds). */
 const LEVELS=[
-  {name:'Level 1',hintAfter:1,rounds:['milk','bread','eggs','yogurt','juice','cheese'].map((f,k)=>({foods:[f,f],kinds:['pastM','futM'],fixed:k===0}))},
+  {name:'Level 1',hintAfter:1,rounds:['milk','bread','eggs','yogurt','juice','cheese'].map((f,k)=>({foods:[f],fixed:k===0}))},
   {name:'Level 2',hintAfter:1,rounds:[
     {foods:['yogurt','milk','eggs'],kinds:['pastM','futM','pastM'],kw:{yogurt:'BEST BY'},fixed:true},
     {foods:['bread','cheese','juice'],kinds:['pastM','pastM','futM']},
@@ -89,6 +92,10 @@ function makeDate(kind){
     case 'prevY':return new Date(y-1,m<11?ri(m+1,11):11,ri(1,28));
   }
 }
+function l1Kinds(){
+  for(;;){const k=['pastM',...shuffle(['pastM','pastM','futM','futM','futM'])];
+    if(!k.some((x,j)=>j>1&&x===k[j-1]&&x===k[j-2]))return k}
+}
 function lotCode(){return 'L'+ri(1,9)+ri(100,999)+' '+p2(ri(5,22))+':'+p2(ri(0,59))}
 function makeRound(plan){
   for(let n=0;n<80;n++){
@@ -106,7 +113,8 @@ function newLevel(n){
      so we pretend today is the 15th (and say so on the calendar). */
   if(n<2){const t=real.getDate(),len=dim(real.getFullYear(),real.getMonth());
     if(t<4||t>len-3){T=new Date(real.getFullYear(),real.getMonth(),15);pretend=true}}
-  ROUNDS=LEVELS[n].rounds.map(makeRound);
+  if(n===0){const k=l1Kinds();ROUNDS=LEVELS[0].rounds.map((p,j)=>makeRound({...p,kinds:[k[j]]}))}
+  else ROUNDS=LEVELS[n].rounds.map(makeRound);
 }
 
 /* ---------- words ---------- */
@@ -145,13 +153,20 @@ function labelParts(c,dpw){
   const dp=Math.min(.3,.86*lw/mc,.86*lh/(8.6*n-1.6));
   return {small:h,big:h,st:'--dp:'+dp.toFixed(3)+'cqw'};
 }
+/* a food card. Levels 2 and 3: the card is the answer (tap it). Level 1: the card only shows the food; the answer buttons are beside it. */
 function cardHTML(c,i){
   const f=FOODS[c.food],[lx,ly,lw,lh]=f.box,lab=labelParts(c);
-  const wide=LV===0&&lw/lh>2.6?' wide':'';
-  return '<button class="choice food" style="--i:'+i+'" data-i="'+i+'" aria-label="'+tileWords(c)+'">'+
+  const wide=LV===0&&lw/lh>2.6?' wide':'',tag=LV===0?'div':'button',role=LV===0?' role="img"':'';
+  return '<'+tag+' class="choice food" style="--i:'+i+'" data-i="'+i+'"'+role+' aria-label="'+tileWords(c)+'">'+
     '<div class="pic" style="--lx:'+lx+'%;--ly:'+ly+'%;--lw:'+lw+'%;--lh:'+lh+'%;--rot:'+(f.rot||0)+'deg;--sk:'+(f.sk||0)+'deg">'+
     '<img src="'+ART+c.food+'.webp" alt="" draggable="false"><div class="plabel'+wide+'"'+(lab.st?' style="'+lab.st+'"':'')+'>'+lab.small+'</div></div>'+
-    '<svg class="cone" aria-hidden="true"></svg><div class="win">'+lab.big+'</div></button>';
+    '<svg class="cone" aria-hidden="true"></svg><div class="win">'+lab.big+'</div></'+tag+'>';
+}
+/* Level 1: the two answers, always in the same place (Expired on top), in the words of the question */
+const ICON={bad:'<path d="M7 7l10 10M17 7L7 17"/>',good:'<path d="M5.5 12.5l4.2 4.2L18.5 7.5"/>'};
+function answersHTML(){
+  const b=(k,w,n)=>'<button class="choice ans '+k+'" data-a="'+k+'" style="--i:'+n+'"><span class="aico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">'+ICON[k]+'</svg></span><span class="word">'+w+'</span></button>';
+  return '<div class="answers">'+b('bad','Expired',1)+b('good','Not expired',2)+'</div>';
 }
 function calHTML(rd){
   const y=T.getFullYear(),m=T.getMonth(),t=T.getDate(),n=dim(y,m),first=new Date(y,m,1).getDay(),rows=Math.ceil((first+n)/7);
@@ -191,7 +206,7 @@ function finish(el){
 function cardsOf(){return [...document.querySelectorAll('#main .food')].map(el=>{const c=ROUNDS[i].cards[+el.dataset.i];c.el=el;return c})}
 function verdict(c){
   const w=c.el.querySelector('.win');if(w.querySelector('.verdict'))return;
-  const v=document.createElement('span');v.className='verdict '+(c.good?'good':'bad');v.textContent=c.good?'STILL GOOD':'EXPIRED';w.appendChild(v);
+  const v=document.createElement('span');v.className='verdict '+(c.good?'good':'bad');v.textContent=c.good?(LV===0?'NOT EXPIRED':'STILL GOOD'):'EXPIRED';w.appendChild(v);
 }
 /* Levels 1 and 2: a little picture of the food is pinned on its date, on the calendar (or on the month strip) */
 function pin(c,fromHint){
@@ -219,7 +234,16 @@ function setHint(on,auto){
 }
 function miss(){tries++;if(!easy&&tries>=LEVELS[LV].hintAfter)setHint(true,true)}
 
-function tapOne(c){                                   /* Levels 1 and 2: one food is still good */
+function notLine(c){return 'Not expired! '+printed(c)+' '+why(c)+'. It is still good.'}
+function answer(b){                                   /* Level 1: is the one food expired or not? */
+  if(solved||b.classList.contains('no'))return;
+  const c=cardsOf()[0],right=(b.dataset.a==='good')===c.good;
+  if(right){b.classList.add('yes');
+    document.querySelectorAll('#main .ans').forEach(o=>{if(o!==b)o.classList.add('rest')});
+    sayTile(c);pin(c,false);verdict(c);say(c.good?notLine(c):badLine(c));finish(b);
+  }else{b.classList.add('no');SFX.oops();say('Look again. Find '+printed(c)+' on the calendar.',true);miss()}
+}
+function tapOne(c){                                   /* Level 2: one food is still good */
   if(solved||c.el.classList.contains('no'))return;
   sayTile(c);pin(c,false);verdict(c);
   if(c.good){c.el.classList.add('yes');
@@ -256,8 +280,7 @@ function renderRound(){
   g.className='game l'+(LV+1)+(i===0?' together-on':'');
   $('lvl').textContent=lv.name;$('together').hidden=i!==0;$('easy').setAttribute('aria-pressed','false');
   stamps();say('');
-  const f=FOODS[rd.cards[0].food];
-  const q=LV===0?'Which '+f.noun+' '+(f.many?'are':'is')+' <b>still good</b>?':LV===1?'Which food is <b>still good</b>?':'Tap <b>every</b> food that is still good.';
+  const q=LV===0?'Is it <b>expired</b> or not?':LV===1?'Which food is <b>still good</b>?':'Tap <b>every</b> food that is still good.';
   const side=LV===2?phoneHTML(rd):calHTML(rd),cards=rd.cards.map(cardHTML);
   /* Level 3 prints every label in a round with the same dot size, sized to the longest line */
   let dpw='';
@@ -265,9 +288,10 @@ function renderRound(){
   m.className='';void m.offsetWidth;
   const dense=LV===2&&rd.cards.some(c=>kwLines(c.kw).length+1+(c.lot?1:0)>3)?' dense':'';
   m.innerHTML='<div class="qrow"><h1 id="q">'+q+'</h1><p class="hint" id="hint"'+(i===0?'':' hidden')+'>'+(i===0?TOGETHER[LV]:'')+'</p></div>'+
-    '<div class="stage'+dense+'"'+dpw+'>'+(LV===0?cards[0]+side+cards[1]:side+cards.join(''))+'</div>';
+    '<div class="stage'+dense+'"'+dpw+'>'+(LV===0?cards[0]+side+answersHTML():side+cards.join(''))+'</div>';
   m.classList.add('enter');
-  m.querySelectorAll('.food').forEach(el=>{const c=rd.cards[+el.dataset.i];c.el=el;el.onclick=()=>LV===2?tapMany(c):tapOne(c)});
+  m.querySelectorAll('.food').forEach(el=>{const c=rd.cards[+el.dataset.i];c.el=el;if(LV>0)el.onclick=()=>LV===2?tapMany(c):tapOne(c)});
+  m.querySelectorAll('.ans').forEach(b=>b.onclick=()=>answer(b));
   $('next').hidden=!done.has(i);$('donebtn').hidden=LV!==2||done.has(i);$('skip').hidden=false;
   if(LV===2)timer=setInterval(()=>{const p=$('ptime');if(p)p.textContent=clockNow()},15000);
   fitLabels();requestAnimationFrame(cones);setTimeout(cones,520);
@@ -299,8 +323,20 @@ addEventListener('resize',()=>{if(!$('game').hidden){fitLabels();cones()}});
 
 /* ---------- screens: the Fun Friday flow (Next and Skip go on, Back goes back, a whoosh between rounds, a party at the end) ---------- */
 function stopWin(){const ws=$('winstage');if(ws)WINFX.stop(ws)}
-function screen(id){['pick','game','done'].forEach(s=>{$(s).hidden=s!==id});scrollTo(0,0)}
+function screen(id){
+  if(id!=='find'&&!$('find').hidden&&window.FindTheDate)FindTheDate.stop();   /* leaving Find the Date any other way stops it (HOOK.md) */
+  ['pick','game','done','find'].forEach(s=>{$(s).hidden=s!==id});scrollTo(0,0)}
 function showPick(){stopWin();hush();clearInterval(timer);screen('pick')}
+/* Find the Date! (find/find.js): level 0 to 3 = Level 1 to 4. Back on its round 1, or Pick a level on its done page, comes back here. */
+function startFind(n,r){
+  if(!window.FindTheDate)return;stopWin();hush();clearInterval(timer);screen('find');
+  FindTheDate.start($('find'),{level:n,round:r||0,today:realToday(),rand,onExit:()=>{FindTheDate.stop();showPick()}});
+}
+/* the level pick shows Check the Date's 3 levels or Find the Date's 4 */
+function pickMode(m){
+  document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m)));
+  $('levels-check').hidden=m!=='check';$('levels-find').hidden=m!=='find';
+}
 function startLevel(n){newLevel(n);screen('game');renderRound();SFX.whoosh();sayRound()}
 function go(n){
   if(n<0){showPick();SFX.whoosh();return}               /* Back on round 1: the level pick (in Fun Friday: the opening page) */
@@ -334,7 +370,9 @@ $('startbtn').onclick=()=>{
 };
 
 /* ---------- buttons and keys (the Fun Friday ones, plus the level pick and Done) ---------- */
-document.querySelectorAll('.lvcard').forEach(b=>b.onclick=()=>startLevel(+b.dataset.l));
+document.querySelectorAll('#levels-check .lvcard').forEach(b=>b.onclick=()=>startLevel(+b.dataset.l));
+document.querySelectorAll('#levels-find .lvcard').forEach(b=>b.onclick=()=>{startFind(+b.dataset.f);SFX.whoosh()});
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{pickMode(b.dataset.m);SFX.click()});
 $('pickback').onclick=()=>{hush();showOpen()};
 $('next').onclick=()=>go(i+1);
 $('skip').onclick=()=>go(i+1);
@@ -355,6 +393,7 @@ document.addEventListener('keydown',e=>{
 /* ---------- start: the opening page, or straight to a level and round (?level=2&round=4) ---------- */
 (function start(){
   const l=Number(Q.get('level')),r=Number(Q.get('round'));
+  if(Q.get('screen')==='find'){opened=true;$('open').hidden=true;pickMode('find');startFind(Math.max(0,(l||1)-1),Math.max(0,(r||1)-1));return}
   if(l>=1&&l<=3){opened=true;$('open').hidden=true;newLevel(l-1);screen('game');i=r>=1&&r<=6?r-1:0;renderRound();
     if(Q.get('hint')==='1')setHint(true,false);return}
   if(Q.get('screen')==='pick'){opened=true;$('open').hidden=true;showPick();return}

@@ -27,7 +27,7 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
 .pretend{position:absolute;z-index:3;left:50%;top:calc(var(--u)*-3.2);transform:translateX(-50%) rotate(-2deg);white-space:nowrap;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.4);line-height:1;color:var(--ink);background:var(--sun);border-radius:99px;padding:.3em .9em .2em;box-shadow:0 calc(var(--u)*.4) 0 rgba(18,48,92,.18)}
 
 .stage{display:grid;align-items:center;justify-content:center;gap:calc(var(--u)*3.5)}
-.l1 .stage{grid-template-columns:calc(var(--u)*46) calc(var(--u)*68) calc(var(--u)*46)}
+.l1 .stage{grid-template-columns:calc(var(--u)*46) calc(var(--u)*68) calc(var(--u)*46);align-items:stretch}
 .l2 .stage{grid-template-columns:calc(var(--u)*48) repeat(3,calc(var(--u)*38));gap:calc(var(--u)*3)}
 .l3 .stage{grid-template-columns:calc(var(--u)*28) repeat(3,calc(var(--u)*44))}
 .together-on .l1 .stage,.together-on.l1 .stage{grid-template-columns:calc(var(--u)*42) calc(var(--u)*62) calc(var(--u)*42)}
@@ -52,6 +52,7 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
   background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2312305C' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='6'/%3E%3Cpath d='M14.5 14.5 20 20'/%3E%3C/svg%3E") center/62% no-repeat;border:calc(var(--u)*.35) solid var(--label);box-sizing:border-box}
 .win .mo,.win .dd,.win .dt{font-family:var(--display);font-weight:800}
 .l1 .win{min-width:calc(var(--u)*30)}
+.l1 .food{pointer-events:none;justify-content:center}   /* Level 1: the food is not an answer; the two buttons beside it are */
 .l1 .win .row{display:flex;align-items:baseline}
 .l1 .win .mo{font-size:calc(var(--u)*6);margin-right:.25em}.l1 .win .dd{font-size:calc(var(--u)*9)}
 .l2 .win{min-width:calc(var(--u)*29)}
@@ -66,6 +67,14 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
 /* a round where one date needs more lines (BEST IF USED BY): the cards stay one height, as in the approved samples; the picture keeps to the top, the zoomed copy to the bottom */
 .l3 .stage.dense>.choice.food{align-self:stretch;justify-content:space-between}
 .l3 .win .dots.lot{margin-top:calc(var(--u)*1.3);opacity:.85}
+/* Level 1: the two answers, Expired on top, Not expired below (Fun Friday answer cards, with the Fun Friday word size) */
+.answers{display:flex;flex-direction:column;gap:calc(var(--u)*3.5)}
+.choice.ans{flex:1;justify-content:center;gap:calc(var(--u)*2);padding:calc(var(--u)*2)}
+.ans .aico{width:calc(var(--u)*13);height:calc(var(--u)*13);border-radius:50%;display:grid;place-items:center;box-shadow:0 calc(var(--u)*.6) 0 rgba(18,48,92,.18)}
+.ans.bad .aico{background:var(--stop)}.ans.good .aico{background:var(--go)}
+.ans .aico svg{width:60%;height:60%}
+.ans .word{font-family:var(--display);font-weight:800;font-size:clamp(17px,calc(var(--u)*6),84px);line-height:1;text-align:center}
+.ans.bad .word{color:var(--stop)}.ans.good .word{color:var(--go)}
 /* the verdict stamp on the label once a food is checked */
 .verdict{position:absolute;z-index:3;right:calc(var(--u)*-1.2);top:calc(var(--u)*-2.4);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.7);line-height:1;color:#fff;
   padding:.3em .6em .2em;border-radius:calc(var(--u)*1);transform:rotate(6deg);box-shadow:0 calc(var(--u)*.4) 0 rgba(18,48,92,.22);animation:stampin .35s cubic-bezier(.3,1.7,.5,1) backwards;white-space:nowrap}
@@ -141,6 +150,18 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
 .lvpick{padding-bottom:calc(var(--u)*1.5)}
 .lvpick main{gap:calc(var(--u)*4)}
 .levels{display:grid;grid-template-columns:repeat(3,calc(var(--u)*50));gap:calc(var(--u)*4);justify-content:center}
+.levels[hidden]{display:none}
+/* the level pick's two games: Check the Date! (3 levels) and Find the Date! (4 levels), in the same cards */
+.lvpick main{gap:calc(var(--u)*3)}
+.modes{display:flex;gap:calc(var(--u)*2);justify-content:center}
+.choice.mode{flex-direction:row;padding:calc(var(--u)*1.4) calc(var(--u)*3.2) calc(var(--u)*1.2);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.6);line-height:1;color:var(--blue)}
+.choice.mode[aria-pressed="true"]{background:var(--blue);color:#fff}
+.levels.find{grid-template-columns:repeat(4,calc(var(--u)*40));gap:calc(var(--u)*3)}
+.levels.find .lvcard .big{font-size:calc(var(--u)*6)}
+.levels.find .lvcard .art{height:calc(var(--u)*20)}
+.levels.find .lvcard .art img{max-width:62%}
+.mini-find{display:block;flex:none;width:calc(var(--u)*8);height:calc(var(--u)*8);border-radius:50%;box-sizing:border-box;border:calc(var(--u)*.35) solid var(--label);
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2312305C' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='10' cy='10' r='6'/%3E%3Cpath d='M14.5 14.5 20 20'/%3E%3C/svg%3E") center/62% no-repeat}
 .choice.lvcard{padding:calc(var(--u)*2.2) calc(var(--u)*2) calc(var(--u)*2.6);gap:calc(var(--u)*1.4);text-align:center}
 .lvcard .big{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*7);line-height:1;color:var(--blue)}
 .lvcard .what{font-weight:900;font-size:calc(var(--u)*2.8);line-height:1.15;min-height:2.3em;text-wrap:balance}

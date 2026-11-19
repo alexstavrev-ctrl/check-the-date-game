@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/winfx-astra.css">
 <link rel="stylesheet" href="css/titlefx.css">
 <link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="find/find.css">
 </head>
 <body>
 
@@ -24,11 +25,15 @@
   </div>
   <main>
     <h1>Pick a <b>level</b></h1>
-    <div class="levels">
+    <div class="modes" role="group" aria-label="Game">
+      <button class="choice mode" data-m="check" aria-pressed="true">Check the Date!</button>
+      <button class="choice mode" data-m="find" aria-pressed="false">Find the Date!</button>
+    </div>
+    <div class="levels" id="levels-check">
       <button class="lvcard choice" data-l="0" style="--i:0">
         <span class="big">Level 1</span>
         <span class="art"><img src="assets/foods/milk.webp" alt=""><span class="mini-cal" aria-hidden="true"><span class="mh">NOV</span><span class="mg"><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="x"></i><i class="t"></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span></span>
-        <span class="what">Two of the same food. The calendar helps.</span>
+        <span class="what">One food. Is it expired or not? The calendar helps.</span>
       </button>
       <button class="lvcard choice" data-l="1" style="--i:1">
         <span class="big">Level 2</span>
@@ -39,6 +44,29 @@
         <span class="big">Level 3</span>
         <span class="art"><span class="mini-phone" aria-hidden="true"><span>Thursday<b>10:24</b></span></span><span class="mini-dots" id="minidots" aria-hidden="true"></span></span>
         <span class="what">Printed dates. Today is on the phone.</span>
+      </button>
+    </div>
+    <!-- Find the Date! (find/): turn a package, find the date, say it -->
+    <div class="levels find" id="levels-find" hidden>
+      <button class="lvcard choice" data-f="0" style="--i:0">
+        <span class="big">Level 1</span>
+        <span class="art"><img src="assets/foods/milk.webp" alt=""><span class="mini-find" aria-hidden="true"></span></span>
+        <span class="what">Turn the package. Find the month word.</span>
+      </button>
+      <button class="lvcard choice" data-f="1" style="--i:1">
+        <span class="big">Level 2</span>
+        <span class="art"><img src="assets/foods/soup.webp" alt=""><span class="mini-find" aria-hidden="true"></span></span>
+        <span class="what">Turn and tip it. Find BEST BY, USE BY or EXP.</span>
+      </button>
+      <button class="lvcard choice" data-f="2" style="--i:2">
+        <span class="big">Level 3</span>
+        <span class="art"><img src="assets/foods/cereal.webp" alt=""><span class="mini-find" aria-hidden="true"></span></span>
+        <span class="what">Drag it around. Tell the date from the codes.</span>
+      </button>
+      <button class="lvcard choice" data-f="3" style="--i:3">
+        <span class="big">Level 4</span>
+        <span class="art"><img src="assets/foods/eggs.webp" alt=""><span class="mini-find" aria-hidden="true"></span></span>
+        <span class="what">Messy dates: new ways to write them, and numbers that look like dates.</span>
       </button>
     </div>
   </main>
@@ -77,6 +105,9 @@
   </div>
 </section>
 
+<!-- Find the Date! draws itself in here (find/find.js) -->
+<section id="find" hidden aria-label="Find the Date"></section>
+
 <!-- opening page: the floating title -->
 <section class="open" id="open" hidden aria-label="Opening page">
   <h2 class="o-title">Check the <span>Date!</span></h2>
@@ -89,6 +120,7 @@
 <script src="js/winfx-astra.js"></script>
 <script src="js/dotmatrix.js"></script>
 <script src="js/titlefx.js"></script>
+<script src="find/find.js"></script>
 <script src="js/game.js"></script>
 <script>document.getElementById('minidots').innerHTML=dotText('EXP')+dotText('12/02/26')</script>
 </body>

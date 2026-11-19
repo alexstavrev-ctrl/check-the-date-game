@@ -1,0 +1,115 @@
+/* ============================================================================================================
+   Find the Date! (Claude's part of Check the Date!): find the date on a package you turn, then say it.
+   The look is the approved viz dev, find-the-date-vizdev/v3 (approved 11/19/2026): the package takes about 93% of the
+   screen height; the words float over the scene UNDER the package; the buttons sit on top; rounded-square turn
+   buttons in one panel in the bottom-right corner; the Look for chips stacked in a column.
+   It reuses the game's look (css/ff-engine.css + css/game.css): tokens, --u, and the classes
+   .name .lvl .tool .nav .next .choice (with their right and wrong states) and .lvdone.
+   Every rule is scoped under #find. Sizes are in the game's --u.
+   ============================================================================================================ */
+
+/* layers inside the activity: 1 = words (under the package), 2 = the 3D package, 3 = outlines on the package, 4 = buttons */
+#find .fd-root{position:fixed;inset:0;z-index:1;overflow:hidden;color:var(--ink);font-family:var(--body);
+  background:radial-gradient(ellipse 58% 78% at 50% 54%,#fff 0%,#F3F9FF 42%,var(--sky) 88%);
+  --fd-l:max(16px,env(safe-area-inset-left,0px));--fd-r:max(16px,env(safe-area-inset-right,0px));
+  --fd-btn:max(calc(var(--u)*6.4),48px);--amber:#F0901E;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  /* the iPad: fingers turn and zoom the package, never the page */touch-action:none}
+#find .fd-stage{position:absolute;inset:0;z-index:2;touch-action:none;cursor:pointer}
+#find .fd-stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+#find .fd-ov{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}
+
+/* top strip: name, level and steps are words (under the package); Easier, Skip and Sound are buttons (on top) */
+#find .fd-stripL{position:absolute;left:var(--fd-l);top:calc(var(--u)*1.5);z-index:1;display:flex;align-items:center;gap:calc(var(--u)*1.6);flex-wrap:nowrap}
+#find .fd-steps{display:flex;align-items:center;gap:calc(var(--u)*1.6)}
+#find .fd-tools{position:absolute;right:var(--fd-r);top:calc(var(--u)*1.5);z-index:4;display:flex;align-items:center;gap:calc(var(--u)*1.6)}
+#find .fd-step{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.1);padding:.15em .8em;border-radius:99px;border:calc(var(--u)*.35) dashed var(--soft);color:var(--soft);white-space:nowrap;background:rgba(255,255,255,.6)}
+#find .fd-step.now{border-style:solid;border-color:var(--ink);background:var(--ink);color:#fff}
+#find .fd-step.done{border-style:solid;border-color:var(--go);color:var(--go);background:#fff}
+#find .fd-sep{color:var(--soft);font-weight:900;font-size:calc(var(--u)*2.4)}
+
+/* left column: the prompt and the Look for card (stacked chips, approved 11/19) */
+#find .fd-hudL{position:absolute;left:var(--fd-l);top:calc(var(--u)*8.2);z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:calc(var(--u)*1.6)}
+#find h1.fd-prompt{font-family:var(--display);font-weight:800;line-height:1.02;margin:0;text-align:left;text-wrap:wrap;font-size:calc(var(--u)*6);
+  text-shadow:0 0 calc(var(--u)*1.2) #fff,0 0 calc(var(--u)*2.4) #fff}
+#find .fd-look{display:flex;flex-direction:column;align-items:stretch;gap:calc(var(--u)*.8);background:rgba(255,255,255,.92);border-radius:calc(var(--u)*2);
+  padding:calc(var(--u)*1) calc(var(--u)*1.3) calc(var(--u)*1.2);box-shadow:0 calc(var(--u)*.3) calc(var(--u)*1) rgba(18,48,92,.12);white-space:nowrap}
+#find .fd-lab{display:flex;align-items:center;gap:.35em;font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.5)}
+#find .fd-lab svg{width:1em;height:1em}
+#find .fd-chip{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.4);border:calc(var(--u)*.3) solid var(--ink);border-radius:calc(var(--u)*1);padding:.05em .6em;line-height:1.35;white-space:nowrap;background:#fff;text-align:center}
+#find .fd-chip.month{background:var(--stop);color:#fff;border-color:var(--stop)}
+
+/* the message, top right (raised over the package only while it is brought closer) */
+#find .fd-hudR{position:absolute;right:var(--fd-r);top:calc(var(--u)*8.2);z-index:1;display:flex;flex-direction:column;align-items:flex-end}
+#find .fd-root.zoomed .fd-hudR,#find .fd-root.say .fd-hudR{z-index:4}
+#find .fd-bubble{background:#fff;border:calc(var(--u)*.4) solid var(--amber,#F0901E);border-radius:calc(var(--u)*1.8);padding:calc(var(--u)*1) calc(var(--u)*1.6);font-weight:800;font-size:calc(var(--u)*2.3);line-height:1.2;
+  box-shadow:0 calc(var(--u)*.5) calc(var(--u)*1.2) rgba(18,48,92,.16);max-width:calc(var(--u)*32);transform-origin:100% 0;animation:cheer .5s cubic-bezier(.3,1.7,.5,1)}
+#find .fd-bubble.go{border-color:var(--go)}
+#find .fd-bubble b{color:var(--blue)}
+#find .fd-bubble .t{font-family:var(--display);font-size:calc(var(--u)*2.8);color:#B5620A;display:block;margin-bottom:.1em}
+#find .fd-bubble.go .t{color:var(--go)}
+
+/* bottom corners: Back (the game's .nav) and the turn buttons; Next (the game's .nav.next) takes the corner in Say it */
+#find .fd-back{position:absolute;left:var(--fd-l);bottom:calc(var(--u)*1.5);z-index:4}
+#find .fd-next{position:absolute;right:var(--fd-r);bottom:calc(var(--u)*1.5);z-index:4}
+#find .fd-back.nav,#find .fd-next.nav{font-size:calc(var(--u)*3.4);padding:.15em 1.1em}   /* the viz dev's Back size; Next matches it */
+#find .fd-ctl{position:absolute;right:var(--fd-r);bottom:calc(var(--u)*1.5);z-index:4;display:grid;gap:calc(var(--u)*.6);padding:calc(var(--u)*.9);background:rgba(255,255,255,.72);border-radius:calc(var(--u)*2.4);box-shadow:0 calc(var(--u)*.4) calc(var(--u)*1.2) rgba(18,48,92,.12)}
+#find .fd-ctl.cross{grid-template-columns:repeat(3,var(--fd-btn));grid-template-rows:repeat(3,var(--fd-btn))}
+#find .fd-ctl.row{grid-template-columns:repeat(3,var(--fd-btn));grid-template-rows:var(--fd-btn)}
+#find .fd-rb{width:var(--fd-btn);height:var(--fd-btn);padding:0;margin:0;border-radius:calc(var(--fd-btn)*.26);background:#fff;box-shadow:0 calc(var(--u)*.35) 0 rgba(18,48,92,.22);display:grid;place-items:center;border:calc(var(--u)*.3) solid var(--blue);box-sizing:border-box;transition:background .12s}
+#find .fd-rb svg{width:56%;height:56%;pointer-events:none}
+#find .fd-rb.on{background:var(--blue)}
+#find .fd-rb.on svg *{stroke:#fff}
+#find .fd-rb.zoom{border-color:var(--ink)}
+#find .fd-rb.zoom svg *{stroke:var(--ink)}
+#find .fd-rb.zoom[aria-pressed="true"]{background:var(--ink)}
+#find .fd-rb.zoom[aria-pressed="true"] svg *{stroke:#fff}
+#find .fd-rb.prs{--sink:calc(var(--u)*.3);box-shadow:0 calc(var(--u)*.05) 0 rgba(18,48,92,.22)}
+#find .fd-ctl .fd-cap{grid-column:1/4;text-align:center;font-weight:900;font-size:calc(var(--u)*1.7);color:#3c5378;display:flex;align-items:center;justify-content:center;gap:.3em}
+#find .fd-ctl .fd-cap svg{width:1.7em;height:1.7em}
+#find .fd-hand{position:absolute;width:calc(var(--u)*7);height:calc(var(--u)*7);z-index:4;pointer-events:none;transition:opacity .4s}
+#find .fd-hand svg{display:block;width:100%;height:100%;animation:fd-swipe 2.2s ease-in-out .6s infinite}
+@keyframes fd-swipe{0%,30%,100%{translate:0 0}60%{translate:calc(var(--u)*-5) calc(var(--u)*.8)}}
+#find .fd-hand.gone{opacity:0}
+#find .fd-hand.gone svg{animation:none}
+#find .fd-root.drag .fd-stage{cursor:grab}
+#find .fd-root.dragging .fd-stage{cursor:grabbing}
+
+/* Say it: the whole-package picture, the labels on the close look, the answer card (the game's .choice cards) */
+#find .fd-inset{position:relative;width:calc(var(--u)*24);height:calc(var(--u)*21);background:#fff;border-radius:calc(var(--u)*1.8);border:calc(var(--u)*.3) solid #D5DFEC;overflow:hidden;box-shadow:0 calc(var(--u)*.4) calc(var(--u)*1) rgba(18,48,92,.12)}
+#find .fd-inset img,#find .fd-inset svg,#find .fd-inset canvas{position:absolute;inset:0;width:100%;height:100%;max-width:none}
+#find .fd-inset .fd-cap2{position:absolute;left:0;right:0;bottom:calc(var(--u)*.6);text-align:center;font-weight:900;font-size:calc(var(--u)*1.6);color:#5b7090}
+#find .fd-tag{position:absolute;z-index:4;font-weight:900;font-size:calc(var(--u)*1.8);color:#5b7090;white-space:nowrap;background:rgba(255,255,255,.88);border-radius:.4em;padding:0 .35em;pointer-events:none;line-height:1.35}
+#find .fd-tag.go{color:var(--go)}
+#find .fd-tag.amber{color:#B5620A}
+#find .fd-answers{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--u)*1.5);z-index:4;background:#fff;border-radius:calc(var(--u)*2.6);padding:calc(var(--u)*1.2) calc(var(--u)*2) calc(var(--u)*1.6);display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1);box-shadow:0 calc(var(--u)*.8) 0 rgba(18,48,92,.18)}
+#find .fd-answers.wait{visibility:hidden}
+#find .fd-qq{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3);margin:0}
+#find .fd-ans{display:flex;gap:calc(var(--u)*1.8);justify-content:center}
+#find .choice.fd-a{flex-direction:row;align-items:center;gap:calc(var(--u)*1.1);padding:calc(var(--u)*1) calc(var(--u)*2);border-radius:calc(var(--u)*2);border:calc(var(--u)*.3) solid #D5DFEC;
+  box-shadow:0 calc(var(--u)*.5) 0 rgba(18,48,92,.18);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.4);line-height:1.1;white-space:nowrap;color:var(--ink);background:#fff}
+#find .choice.fd-a.yes,#find .choice.fd-a.no{border-width:calc(var(--u)*.6);padding:calc(var(--u)*.7) calc(var(--u)*1.7)}
+#find .choice.fd-a.yes{border-color:var(--go);background:#E6F8EE}
+#find .choice.fd-a.no{border-color:var(--stop);background:#FDEBEA}
+#find .choice.fd-a.yes::before{width:calc(var(--u)*4.6);height:calc(var(--u)*4.6);font-size:calc(var(--u)*3);top:calc(var(--u)*-1.8);right:calc(var(--u)*-1.8);border-width:calc(var(--u)*.45)}
+#find .choice.fd-a.prs{--sink:calc(var(--u)*.4);box-shadow:0 calc(var(--u)*.1) 0 rgba(18,48,92,.18)}
+#find .fd-spk{width:calc(var(--u)*4.2);height:calc(var(--u)*4.2);border-radius:50%;background:var(--sky);display:grid;place-items:center;flex:none}
+#find .fd-spk svg{width:60%;height:60%}
+
+/* outlines drawn on the package: green = found (with the check), amber = not that one, dashed = the other parts, sun = Easier */
+#find .fd-ov .fd-check>g{transform-box:fill-box;transform-origin:center;animation:stampin .4s cubic-bezier(.3,1.7,.5,1) backwards}
+#find .fd-ov .fd-glow{animation:fd-glow 1.4s ease-in-out infinite}
+@keyframes fd-glow{50%{opacity:.35}}
+#find .fd-ov .fd-in{animation:fd-in .25s ease-out}
+@keyframes fd-in{from{opacity:0}}
+
+/* level done: the game's level-done page (.lvdone), inside this activity */
+#find .fd-done{position:absolute;inset:0;z-index:5;background:radial-gradient(ellipse 58% 78% at 50% 54%,#fff 0%,#F3F9FF 42%,var(--sky) 88%);box-sizing:border-box;padding:calc(var(--u)*3) var(--fd-r) calc(var(--u)*3) var(--fd-l)}
+#find .fd-done .rule b{color:var(--blue)}
+/* if the screen can't show 3D */
+#find .fd-err{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--u)*3);font-family:var(--display);font-weight:800;font-size:calc(var(--u)*4)}
+
+/* Level 4 (its look is level4.css, loaded with level4.js): an amber answer shakes like the game's wrong answer. Without its own
+   animation it would play the game's deal-in again when the press spring ends. */
+#find .fd-l4 .choice.fd-a.amber{animation:shake .45s}
+
+@media (prefers-reduced-motion:reduce){#find .fd-ov .fd-glow,#find .fd-ov .fd-check>g,#find .fd-ov .fd-in,#find .fd-bubble,#find .fd-hand svg{animation:none!important}}

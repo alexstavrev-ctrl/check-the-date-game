@@ -10,12 +10,20 @@ Fun Friday game's own engine, copied as it is, so both games look, sound, click 
 
 | Level | What the class sees | How they find "today" | Supports |
 |---|---|---|---|
-| 1 | Two of the same food. The date is printed `NOV 12`. | A wall calendar with the past days crossed out | Crossed-out days; round 1 is "Do it together" |
+| 1 | One food. "Is it expired or not?" Two answers: Expired, Not expired. The date is printed `NOV 12`. | A wall calendar with the past days crossed out | Crossed-out days; round 1 is "Do it together"; 3 expired and 3 still good, never 3 the same in a row |
 | 2 | Three foods, with `BEST BY`, `USE BY` and `EXP`. Rounds 4 to 6 use last and next month. | The calendar, today circled only | A month strip (last month, this month, next month); X's come back as a hint |
 | 3 | Three foods with printed dot dates (`11/16/26`, `11/16/2026`, `NOV 16 2026`), lot codes, other years. Tap every good food, then Done. | Today's date on a phone, like in real life | Today in numbers on the phone as a hint |
 
 A hint appears after one wrong tap (Levels 1 and 2) or two (Level 3), or with the Easier button.
 No date is ever equal to today, and the game uses the real date of the day it is played.
+
+## Find the Date!
+
+The level pick also opens Find the Date! (folder `find/`, Levels 1 to 4): turn a 3D package, find where the date is
+printed, then say what it says. It was built as its own part and plugs in with one call,
+`FindTheDate.start(section, {level, round, today, rand, onExit})`, and `FindTheDate.stop()`. The packages are drawn in
+code; three.js r160 is self-hosted in `find/` with its licence. Testing address: `?screen=find&level=1&round=1`
+(with `&today=` and `&seed=` as usual).
 
 ## What comes from the Fun Friday game
 
