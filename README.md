@@ -56,6 +56,18 @@ Canva, colored-pencil style (the style Alex chose 11/17), cut out on transparent
 the shared library alexstavrev-ctrl/classroom-assets and is listed in `assets.lock.json`. Run the library check
 before every publish.
 
+## Publishing
+
+The live game is the `gh-pages` branch (https://alexstavrev-ctrl.github.io/check-the-date-game/). Before every publish:
+
+```
+python3 tools/ff_engine.py check ../fun-friday-game/index.html                          # PASS: the engine is still an exact copy
+python3 ../classroom-assets/tools/assets.py check --site . --baseline-git origin/gh-pages  # RESULT: PASS: every picture and font is approved library art
+git push origin main && git push origin main:gh-pages
+```
+
+Then open the live link on a real browser and play a round (github.io can't be reached from the cloud sessions).
+
 ## Testing
 
 Open `index.html` through any web server. Handy addresses:
