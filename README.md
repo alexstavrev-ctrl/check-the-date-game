@@ -5,16 +5,19 @@ A classroom TV game about expiration dates, in 3 levels of 6 rounds. The rule th
 
 The screens follow the sample pages Alex approved on 11/19/2026 (Level 1, 2 and 3). The engine is the
 Fun Friday game's own engine, copied as it is, so both games look, sound, click and celebrate the same way.
+Alex 11/19 (20:20 UTC): in these three levels there is no date on the packages; each date is shown only in the big
+date box under its food, and the pictures have no blank label. Level 1 (20:24 UTC) shows one food at a time.
 
 ## The levels (each one fades a support)
 
 | Level | What the class sees | How they find "today" | Supports |
 |---|---|---|---|
-| 1 | One food. "Is it expired or not?" Two answers: Expired, Not expired. The date is printed `NOV 12`. | A wall calendar with the past days crossed out | Crossed-out days; round 1 is "Do it together"; 3 expired and 3 still good, never 3 the same in a row |
+| 1 | One food. "Is it expired or not?" Two answers: Expired, Not expired. The date reads `NOV 12`. | A wall calendar with the past days crossed out | Crossed-out days; round 1 is "Do it together"; 3 expired and 3 still good, never 3 the same in a row |
 | 2 | Three foods, with `BEST BY`, `USE BY` and `EXP`. Rounds 4 to 6 use last and next month. | The calendar, today circled only | A month strip (last month, this month, next month); X's come back as a hint |
-| 3 | Three foods with printed dot dates (`11/16/26`, `11/16/2026`, `NOV 16 2026`), lot codes, other years. Tap every good food, then Done. | Today's date on a phone, like in real life | Today in numbers on the phone as a hint |
+| 3 | Three foods with dot-matrix dates printed many real ways: `11/16/26`, `11-16-26`, `11.16.26`, `111626`, `11162026`, `16NOV26`, `16 NOV 2026`, `NOV 16 2026`, `NOV 2026` (month and year only), `PACKED ON` next to `USE BY`, and times and lot codes on the same line. Other years. Tap every good food, then Done. | Today's date on a phone, like in real life | Today in numbers on the phone as a hint; a crammed date is read back in the phone's numbers |
 
-A hint appears after one wrong tap (Levels 1 and 2) or two (Level 3), or with the Easier button.
+A hint appears after one wrong tap (Levels 1 and 2) or two (Level 3), or with the Easier button. In Level 1 a wrong
+answer pins the food on its date on the calendar ("Look again. Find NOV 12 on the calendar.").
 No date is ever equal to today, and the game uses the real date of the day it is played.
 
 ## Find the Date!
@@ -55,8 +58,8 @@ python3 tools/ff_engine.py check ../fun-friday-game/index.html   # PASS = every 
 python3 tools/ff_engine.py build ../fun-friday-game/index.html   # copy the blocks again
 ```
 
-New in this game (in the approved look): the food cards with a printed date and a zoomed copy, the wall calendar
-with pins, the month strip, the phone, dot-matrix print (`js/dotmatrix.js`), the level pick and the level-done page.
+New in this game (in the approved look): the food cards with their big date box, the Level 1 answer buttons, the wall
+calendar with pins, the month strip, the phone, dot-matrix print (`js/dotmatrix.js`), the level pick and the level-done page.
 
 ## Pictures
 

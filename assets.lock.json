@@ -3,7 +3,7 @@
  "game": "check-the-date-game",
  "library": {
   "repo": "alexstavrev-ctrl/classroom-assets",
-  "commit": "ee405952c6d6013cc7de2791d18991ec2077245d"
+  "commit": "68e4f4c057842e73e7cbd5da49ff7bd7709861df"
  },
  "approved_baseline": {},
  "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
@@ -29,9 +29,9 @@
   },
   "assets/foods/bread.webp": {
    "asset": "date-food.bread",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/bread.webp",
-   "sha256": "026f4ed738ecc911f2cb8242ca7904d78fa8cea600074fdc70c981ef41799a9c",
+   "sha256": "90ed29529cf378e2f382184b5edc7276c147c6bf18ef49e79d70bb5149dbe306",
    "px": [
     600,
     600
@@ -41,9 +41,9 @@
   },
   "assets/foods/cereal.webp": {
    "asset": "date-food.cereal",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/cereal.webp",
-   "sha256": "044b31253cb2104267d363360007a33a0066dbeaf551197698bc334382d6fb75",
+   "sha256": "d3d2a15cee990d4bc51b8348bc33a422a9f0a5f01b8bed777133db574046b5aa",
    "px": [
     600,
     600
@@ -53,9 +53,9 @@
   },
   "assets/foods/cheese.webp": {
    "asset": "date-food.cheese",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/cheese.webp",
-   "sha256": "a6f6f17a38a0fefafb19ba73d255dfbeae900ee01d451882f1b2cebffdd14473",
+   "sha256": "6bb48f49bfdf268a043d1effb3a4471314225aa4e1a1732ce0f1e0244bb515ed",
    "px": [
     600,
     600
@@ -65,9 +65,9 @@
   },
   "assets/foods/eggs.webp": {
    "asset": "date-food.eggs",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/eggs.webp",
-   "sha256": "265948e0a0b947f1e808f0eea8b0afeb8a3f473a3cd499d521033eef5d9634dc",
+   "sha256": "af2212c421a91f48765e890ddc15896e91633bffb3571da0f865297862b3f453",
    "px": [
     600,
     600
@@ -77,9 +77,9 @@
   },
   "assets/foods/juice.webp": {
    "asset": "date-food.juice",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/juice.webp",
-   "sha256": "f2e6af4d1acba6f3704023301c238a113c8b54c2f954dcf966b7f005547658c8",
+   "sha256": "526eec2a15462622e34fd00b34b4c95f1b3218d8c41c0ea597c0dd9ea1c7a105",
    "px": [
     600,
     600
@@ -89,9 +89,9 @@
   },
   "assets/foods/milk.webp": {
    "asset": "date-food.milk",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/milk.webp",
-   "sha256": "d97023df4f3bd8eeb4aefde493a4de1bcf184e375a0783ba1c78c254dc332f15",
+   "sha256": "c7ab6bcd56557404f9cb855d2018cd48f46970d29df6b37c3ff4b0232abe1c47",
    "px": [
     600,
     600
@@ -101,9 +101,9 @@
   },
   "assets/foods/soup.webp": {
    "asset": "date-food.soup",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/soup.webp",
-   "sha256": "7751ca3a40cd06ca2b252e99bfa7ab985a6afa2bfc6b4d9393557e6691276ac2",
+   "sha256": "15ab2324ae142e271dbe9fff9e012d374f9b0892f22dbdf1b0ef97a373c59912",
    "px": [
     600,
     600
@@ -113,9 +113,9 @@
   },
   "assets/foods/tortillas.webp": {
    "asset": "date-food.tortillas",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/tortillas.webp",
-   "sha256": "3d884ae44585a45ead9dc61bbb193f34c3913aa21f428ff2f9043e4bbc776f7e",
+   "sha256": "eb74db8f751690dfb0a80f7b0fc23561d7cc1a9d0da0ee2eb0f9939dd92719bd",
    "px": [
     600,
     600
@@ -125,9 +125,9 @@
   },
   "assets/foods/yogurt.webp": {
    "asset": "date-food.yogurt",
-   "version": 1,
+   "version": 2,
    "lib": "images/date-foods/web/yogurt.webp",
-   "sha256": "88b4e7e9858302f7746e36207c12824aa7c1367ce950271fd3b5e0292c3ea788",
+   "sha256": "ea99b436c8cd21e169c1f037247cc8e72832b14d0d9bc0c23e8506fc018fc6f3",
    "px": [
     600,
     600

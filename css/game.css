@@ -1,6 +1,7 @@
 /* Check the Date! This game's own screens, on top of the Fun Friday look and effects (ff-engine.css, loaded first).
-   The screens follow the sample pages Alex approved on 11/19 (Level 1, 2 and 3): food cards with the date label and a zoomed
-   copy, the wall calendar, the phone, plus the level pick and the level-done page in the same look.
+   The screens follow the sample pages Alex approved on 11/19 (Level 1, 2 and 3): food cards with a big date box, the wall
+   calendar, the phone, plus the level pick and the level-done page in the same look. Alex 11/19: no date on the packages
+   (the date box under each food has it); Level 1 shows one food and two answers, "Is it expired or not?".
    Pictures: Canva colored pencil, from the classroom-assets library. Every size is in --u, as in Fun Friday. */
 @font-face{font-family:"Baloo 2";src:url(../assets/fonts/baloo-2/Baloo2-latin-variable.woff2) format("woff2");font-weight:400 800;font-display:swap}
 @font-face{font-family:"Nunito";src:url(../assets/fonts/nunito/Nunito-latin-variable.woff2) format("woff2");font-weight:200 1000;font-display:swap}
@@ -32,20 +33,10 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
 .l3 .stage{grid-template-columns:calc(var(--u)*28) repeat(3,calc(var(--u)*44))}
 .together-on .l1 .stage,.together-on.l1 .stage{grid-template-columns:calc(var(--u)*42) calc(var(--u)*62) calc(var(--u)*42)}
 
-/* ---------- a food = the package with its date label, and a big "zoomed" copy of that label so the whole class can read it ---------- */
+/* ---------- a food = the package (no date on it) and its big date box, so the whole class can read the date ---------- */
 .choice.food{padding:calc(var(--u)*1.4) calc(var(--u)*1.4) calc(var(--u)*2);gap:0}
-.pic{position:relative;width:100%;aspect-ratio:1;container-type:inline-size}
+.pic{position:relative;width:100%;aspect-ratio:1}
 .pic img{width:100%;height:100%;display:block;object-fit:contain;-webkit-user-drag:none;user-select:none}
-.plabel{position:absolute;left:var(--lx);top:var(--ly);width:var(--lw);height:var(--lh);transform:rotate(var(--rot,0deg)) skewY(var(--sk,0deg));transform-origin:0 50%;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;text-align:center;color:var(--ink);pointer-events:none;--dp:.3cqw}
-.plabel .mo,.plabel .dd,.plabel .dt{font-family:var(--display);font-weight:800}
-.l1 .plabel .mo{font-size:calc(5.2cqw*var(--ls,1))}.l1 .plabel .dd{font-size:calc(7.4cqw*var(--ls,1))}
-.plabel.wide{flex-direction:row;align-items:baseline;gap:.9cqw}
-.l2 .plabel .kw{font-family:var(--body);font-weight:900;font-size:calc(2.5cqw*var(--ls,1));letter-spacing:.05em}
-.l2 .plabel .dt{font-size:calc(5.2cqw*var(--ls,1))}
-.plabel .dots{height:auto;display:block;margin:calc(var(--dp)*.8) 0;opacity:.92}
-.plabel{overflow:hidden}
-.cone{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
-.cone polygon{fill:rgba(31,111,214,.07);stroke:rgba(31,111,214,.28);stroke-width:2;stroke-linejoin:round}
 .win{position:relative;z-index:1;margin-top:calc(var(--u)*-1);background:#fff;border:calc(var(--u)*.35) solid var(--label);border-radius:calc(var(--u)*1.2);
   box-shadow:0 calc(var(--u)*.4) calc(var(--u)*1) rgba(18,48,92,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;padding:calc(var(--u)*1.2) calc(var(--u)*2)}
 .win::before{content:"";position:absolute;left:calc(var(--u)*-2.2);top:calc(var(--u)*-2.2);width:calc(var(--u)*4.4);height:calc(var(--u)*4.4);border-radius:50%;
@@ -67,6 +58,10 @@ main.enter .calwrap,main.enter .phonewrap{animation:rise .4s cubic-bezier(.2,1.2
 /* a round where one date needs more lines (BEST IF USED BY): the cards stay one height, as in the approved samples; the picture keeps to the top, the zoomed copy to the bottom */
 .l3 .stage.dense>.choice.food{align-self:stretch;justify-content:space-between}
 .l3 .win .dots.lot{margin-top:calc(var(--u)*1.3);opacity:.85}
+.l3 .win .dots.one{margin-top:0}
+/* PACKED ON and its date, then the key word and the date that counts */
+.l3 .win .dots.pline{margin-top:calc(var(--u)*.7);opacity:.85}
+.l3 .win .dots.kline.after{margin-top:calc(var(--u)*1.3)}
 /* Level 1: the two answers, Expired on top, Not expired below (Fun Friday answer cards, with the Fun Friday word size) */
 .answers{display:flex;flex-direction:column;gap:calc(var(--u)*3.5)}
 .choice.ans{flex:1;justify-content:center;gap:calc(var(--u)*2);padding:calc(var(--u)*2)}

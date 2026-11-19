@@ -3,14 +3,15 @@
    (js/ff-engine.js, an exact copy: sounds, tactile buttons, confetti, flying star, cheer line, round stamps, game-show win,
    narrator, opening page; Alex 11/19: "copy the entire game engine and framework of the fun friday game"). This file holds
    only what is new: the dates, the rounds, the calendar, the phone and the feedback. Pictures: Canva colored pencil,
-   from the classroom-assets library. Level 1 (Alex 11/19, 20:24 UTC): one food at a time, "Is it expired or not?".
-   Find the Date! (find/, built by its own thread, see find/README.md) starts from the level pick.
+   from the classroom-assets library. Alex 11/19 (20:20 UTC): no date on the packages in these three levels; each date is
+   shown in the big date box under its food. Level 1 (20:24 UTC): one food at a time, "Is it expired or not?".
+   Find the Date! (find/, built by its own thread) starts from the level pick.
    This is a public page: no student names or student data anywhere in it. */
 'use strict';
 /* From the engine: $, i (the round, 0-5), done (rounds won), easy (hint on), sound, calm, unit, SFX, say, stamps, burst,
    flyStar, party, bigWin, speak, hush, showOpen, opened. */
 const Q=new URLSearchParams(location.search);
-const gunit=()=>Math.min(innerHeight/100,innerWidth*.005625,(innerWidth-32)/175);   /* = this game's --u in the CSS */
+const gunit=()=>Math.min(innerHeight/100,innerWidth*.005625,(innerWidth-32)/175);   /* = this game's --u in the CSS (Find the Date uses it) */
 
 /* ---------- random numbers (?seed=N repeats the same rounds, for testing) ---------- */
 let seed=(Number(Q.get('seed'))>>>0)||0;
@@ -35,19 +36,18 @@ function realToday(){
 }
 
 /* ---------- the foods ----------
-   box = where the blank label sits on the 600 px Canva picture (% of the picture, measured from its pixels: labelbox.py);
    kw = the key word printed before the date; drink / many change the words we say. */
 const ART='assets/foods/';
 const FOODS={
-  milk:     {alt:'Milk carton',        noun:'milk',      kw:'USE BY',  drink:1,box:[31.2,33.7,24,17.6],rot:1.7},
-  bread:    {alt:'Bag of bread',       noun:'bread',     kw:'BEST BY', box:[29.3,45,26.5,13.7]},
-  eggs:     {alt:'Egg carton',         noun:'eggs',      kw:'EXP',     many:1,box:[35.7,47,41.3,9.7],sk:-5.8},
-  yogurt:   {alt:'Yogurt cup',         noun:'yogurt',    kw:'USE BY',  box:[32.6,52.8,33.6,16.2]},
-  juice:    {alt:'Orange juice bottle',noun:'juice',     kw:'BEST BY', drink:1,box:[38.8,48.7,22.2,15.7]},
-  cheese:   {alt:'Swiss cheese',       noun:'cheese',    kw:'EXP',     box:[35.7,45.2,30.7,16.1],rot:4},
-  tortillas:{alt:'Bag of tortillas',   noun:'tortillas', kw:'BEST BY', many:1,box:[33,41.7,33.8,15.5]},
-  cereal:   {alt:'Cereal box',         noun:'cereal',    kw:'BEST IF USED BY',box:[32.3,19.2,41.2,15.5],sk:-3.4},
-  soup:     {alt:'Can of soup',        noun:'soup',      kw:'BEST BY', box:[31.3,33.5,37,10.2]}
+  milk:     {alt:'Milk carton',        noun:'milk',      kw:'USE BY',  drink:1},
+  bread:    {alt:'Bag of bread',       noun:'bread',     kw:'BEST BY'},
+  eggs:     {alt:'Egg carton',         noun:'eggs',      kw:'EXP',     many:1},
+  yogurt:   {alt:'Yogurt cup',         noun:'yogurt',    kw:'USE BY'},
+  juice:    {alt:'Orange juice bottle',noun:'juice',     kw:'BEST BY', drink:1},
+  cheese:   {alt:'Swiss cheese',       noun:'cheese',    kw:'EXP'},
+  tortillas:{alt:'Bag of tortillas',   noun:'tortillas', kw:'BEST BY', many:1},
+  cereal:   {alt:'Cereal box',         noun:'cereal',    kw:'BEST IF USED BY'},
+  soup:     {alt:'Can of soup',        noun:'soup',      kw:'BEST BY'}
 };
 
 /* ---------- the rounds (teacher plan: each level fades one support; see README) ----------
@@ -66,13 +66,21 @@ const LEVELS=[
     {foods:['eggs','juice','cheese'],kinds:['prevM','nextM','pastM']},
     {foods:['milk','tortillas','bread'],kinds:['prevM','futM','yest']},
     {foods:['cheese','eggs','yogurt'],kinds:['nextM','pastM','prevM']}]},
+  /* Level 3: each date is printed a different way, as on real packages (Alex 11/19, 21:16 UTC: "the expiration date should be
+     printed in many different ways ... just crammed in ... crammed in with other numbers"). Formats from the Find the Date
+     Level 4 research (CFIA, USDA FSIS, Keyence, UEP): slashes, dashes, dots, no separators at all, a month word, month and year
+     only, PACKED ON next to USE BY, and times and lot codes on the same line. No Julian codes and no day-first numbers.
+     fmt: md/yy 11/28/26, md/yyyy 11/28/2026, md-yy 11-28-26, md.yy 11.28.26, mdyy 112826, mdyyyy 11282026, dMONyy 28NOV26,
+          d MON yyyy 28 NOV 2026, mon NOV 28 2026, MONyyyy NOV 2026 (never this month).
+     lay: '' key word, then the date; one = key word and date on one line; lot = a lot code and time line under it;
+          cram = the date with a time and a lot code on one line; packed = PACKED ON and its date, then the key word and date. */
   {name:'Level 3',hintAfter:2,rounds:[
-    {foods:['bread','yogurt','eggs'],kinds:['pastM','futM','nextM'],fixed:true},
-    {foods:['milk','cheese','juice'],kinds:['futM','pastM','yest']},
-    {foods:['tortillas','milk','yogurt'],kinds:['nextM','prevM','futM'],fmt:['md/yyyy']},
-    {foods:['cereal','bread','eggs'],kinds:['nextY','pastM','soon'],fmt:['mon'],lot:true,year:true},
-    {foods:['soup','juice','cheese'],kinds:['prevY','futM','nextM'],fmt:['md/yyyy'],lot:true,year:true},
-    {foods:['cereal','tortillas','soup'],kinds:['nextY','futM','soon'],fmt:['mon','md/yyyy','md/yyyy'],lot:true,year:true}]}
+    {foods:['bread','yogurt','eggs'],kinds:['pastM','futM','nextM'],fmt:['md/yy','md-yy','dMONyy'],fixed:true},
+    {foods:['milk','cheese','juice'],kinds:['futM','pastM','yest'],fmt:['mdyy','md.yy','mon'],lay:['one']},
+    {foods:['tortillas','milk','yogurt'],kinds:['nextM','prevM','futM'],fmt:['md/yyyy','mdyyyy','d MON yyyy'],lay:['lot','cram'],kw:{milk:'BB'}},
+    {foods:['cereal','bread','eggs'],kinds:['nextY','pastM','soon'],fmt:['MONyyyy','mdyy','md-yy'],lay:['','cram','lot'],kw:{bread:'BB'},year:true},
+    {foods:['soup','juice','cheese'],kinds:['prevY','futM','nextM'],fmt:['md/yyyy','mdyy','md/yy'],lay:['lot','cram','packed'],kw:{cheese:'USE BY'},year:true},
+    {foods:['cereal','tortillas','soup'],kinds:['nextY','futM','soon'],fmt:['mon','dMONyy','mdyyyy'],lay:['lot','cram','lot'],kw:{tortillas:'BB'},year:true}]}
 ];
 
 /* ---------- state ---------- */
@@ -97,12 +105,18 @@ function l1Kinds(){
     if(!k.some((x,j)=>j>1&&x===k[j-1]&&x===k[j-2]))return k}
 }
 function lotCode(){return 'L'+ri(1,9)+ri(100,999)+' '+p2(ri(5,22))+':'+p2(ri(0,59))}
+function cramTail(){return p2(ri(5,22))+':'+p2(ri(0,59))+' L'+ri(1,9)}   /* the time and lot code printed on the date's line */
 function makeRound(plan){
   for(let n=0;n<80;n++){
-    const cards=plan.foods.map((f,i)=>{const d=makeDate(plan.kinds[i]);
-      return {food:f,kind:plan.kinds[i],date:d,good:d>T,kw:(plan.kw&&plan.kw[f])||FOODS[f].kw,fmt:(plan.fmt&&plan.fmt[i])||'md/yy',lot:plan.lot?lotCode():''}});
-    const ks=cards.map(c=>key(c.date));
+    const cards=plan.foods.map((f,i)=>{const d=makeDate(plan.kinds[i]),lay=(plan.lay&&plan.lay[i])||'';
+      const c={food:f,kind:plan.kinds[i],date:d,good:d>T,kw:(plan.kw&&plan.kw[f])||FOODS[f].kw,fmt:(plan.fmt&&plan.fmt[i])||'md/yy',lay,
+        lot:lay==='lot'?lotCode():'',tail:lay==='cram'?cramTail():''};
+      if(lay==='packed')c.packed=new Date(T.getFullYear(),T.getMonth(),T.getDate()-ri(2,8));   /* packed a few days ago */
+      return c});
+    const ks=cards.map(c=>key(c.date)).concat(cards.filter(c=>c.packed).map(c=>key(c.packed)));
     if(new Set(ks).size<ks.length||ks.includes(key(T)))continue;
+    if(cards.some(c=>c.fmt==='MONyyyy'&&ym(c.date)===ym(T)))continue;   /* month and year only: never this month (it can't be judged) */
+    if(cards.some(c=>c.packed&&!(c.packed<c.date&&c.packed<T)))continue;
     return {plan,cards:plan.fixed?cards:shuffle(cards)};
   }
 }
@@ -118,13 +132,16 @@ function newLevel(n){
 }
 
 /* ---------- words ---------- */
-function printed(c){                                  /* the date as it is printed on the package */
-  const d=c.date,M=MON[d.getMonth()],dd=d.getDate(),mm=p2(d.getMonth()+1);
-  if(LV<2)return M+' '+dd;
-  if(c.fmt==='md/yyyy')return mm+'/'+p2(dd)+'/'+d.getFullYear();
-  if(c.fmt==='mon')return M+' '+p2(dd)+' '+d.getFullYear();
-  return mm+'/'+p2(dd)+'/'+p2(d.getFullYear()%100);
+function printed(c,d){                                /* the date as it is printed on the package (d: another date on it) */
+  d=d||c.date;const M=MON[d.getMonth()],dd=p2(d.getDate()),mm=p2(d.getMonth()+1),Y=String(d.getFullYear()),yy=Y.slice(2);
+  if(LV<2)return M+' '+d.getDate();
+  return {'md/yyyy':mm+'/'+dd+'/'+Y,'md-yy':mm+'-'+dd+'-'+yy,'md.yy':mm+'.'+dd+'.'+yy,'mdyy':mm+dd+yy,'mdyyyy':mm+dd+Y,
+    'dMONyy':dd+M+yy,'d MON yyyy':dd+' '+M+' '+Y,'mon':M+' '+dd+' '+Y,'MONyyyy':M+' '+Y}[c.fmt]||mm+'/'+dd+'/'+yy;
 }
+/* Level 3: a crammed date read back in the phone's numbers, so the class hears how to read it */
+const CRAMMED={'mdyy':1,'mdyyyy':1,'dMONyy':1};
+function plain(c){const d=c.date;return c.fmt==='dMONyy'?MON[d.getMonth()]+' '+d.getDate()+' '+d.getFullYear():p2(d.getMonth()+1)+'/'+p2(d.getDate())+'/'+p2(d.getFullYear()%100)}
+function dateSaid(c){return LV===2&&CRAMMED[c.fmt]?printed(c)+' means '+plain(c)+'. It '+why(c):printed(c)+' '+why(c)}
 const WHY={pastM:'is before today',yest:'was yesterday',futM:'is after today',soon:'is tomorrow',prevM:'was last month',nextM:'is next month',nextY:'is next year',prevY:'was last year'};
 function why(c){
   const sameM=ym(c.date)===ym(T);
@@ -133,34 +150,35 @@ function why(c){
 }
 const it=c=>FOODS[c.food].many?'them':'it';
 const eat=c=>FOODS[c.food].drink?'drink':'eat';
-function goodLine(c){return 'Still good! '+printed(c)+' '+why(c)+'.'}
-function badLine(c){return 'Expired! '+printed(c)+' '+why(c)+'. Don’t '+eat(c)+' '+it(c)+'.'}
+const PACKNOTE=' PACKED ON is the day it was packed.';
+function goodLine(c){return 'Still good! '+dateSaid(c)+'.'+(c.packed?PACKNOTE:'')}
+function badLine(c){return 'Expired! '+dateSaid(c)+'. Don’t '+eat(c)+' '+it(c)+'.'}
 function spoken(c){const d=c.date;return MONTH[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()}
 
 /* ---------- the pieces of a round ---------- */
 function dotLine(s,cls){return dotText(s).replace('class="dots"','class="dots '+cls+'"')}
 function kwLines(kw){return kw==='BEST IF USED BY'?['BEST IF','USED BY']:[kw]}
 const cols=s=>s.length*6-1;                          /* dot columns of a dot-matrix line */
-function labelParts(c,dpw){
-  const f=FOODS[c.food],t=printed(c);
-  if(LV===0){const [M,dd]=t.split(' ');
-    return {small:'<span class="mo">'+M+'</span><span class="dd">'+dd+'</span>',big:'<div class="row"><span class="mo">'+M+'</span><span class="dd">'+dd+'</span></div>'}}
-  if(LV===1)return {small:'<span class="kw">'+c.kw+'</span><span class="dt">'+t+'</span>',big:'<span class="kw'+(c.kw.length>8?' long':'')+'">'+c.kw+'</span><span class="dt">'+t+'</span>'};
-  /* Level 3: dot-matrix print, like a real inkjet date. The small copy on the package gets a dot size that fits its label. */
-  const lines=[...kwLines(c.kw).map(s=>[s,'kline']),[t,'dline']];if(c.lot)lines.push([c.lot,'lot']);
-  const h=lines.map(([s,k])=>dotLine(s,k)).join('');
-  const [,,lw,lh]=f.box,mc=Math.max(...lines.map(([s])=>cols(s))),n=lines.length;
-  const dp=Math.min(.3,.86*lw/mc,.86*lh/(8.6*n-1.6));
-  return {small:h,big:h,st:'--dp:'+dp.toFixed(3)+'cqw'};
+function dateBox(c){                                  /* the big date box under a food (the package itself has no date) */
+  const t=printed(c);
+  if(LV===0){const [M,dd]=t.split(' ');return '<div class="row"><span class="mo">'+M+'</span><span class="dd">'+dd+'</span></div>'}
+  if(LV===1)return '<span class="kw'+(c.kw.length>8?' long':'')+'">'+c.kw+'</span><span class="dt">'+t+'</span>';
+  /* Level 3: dot-matrix print, like a real inkjet date */
+  return labelLines(c).map(([s,k])=>dotLine(s,k)).join('');
+}
+/* Level 3: the printed lines of a label, [text, kind], in the round's layout for this food */
+function labelLines(c){
+  const t=printed(c),kw=kwLines(c.kw).map(s=>[s,'kline']);
+  if(c.lay==='one')return [[c.kw+' '+t,'dline one']];
+  if(c.lay==='cram')return [...kw,[t+' '+c.tail,'dline']];
+  if(c.lay==='packed')return [['PACKED ON','kline'],[printed(c,c.packed),'pline'],...kw.map(([s])=>[s,'kline after']),[t,'dline']];
+  return [...kw,[t,'dline'],...(c.lot?[[c.lot,'lot']]:[])];
 }
 /* a food card. Levels 2 and 3: the card is the answer (tap it). Level 1: the card only shows the food; the answer buttons are beside it. */
 function cardHTML(c,i){
-  const f=FOODS[c.food],[lx,ly,lw,lh]=f.box,lab=labelParts(c);
-  const wide=LV===0&&lw/lh>2.6?' wide':'',tag=LV===0?'div':'button',role=LV===0?' role="img"':'';
+  const tag=LV===0?'div':'button',role=LV===0?' role="img"':'';
   return '<'+tag+' class="choice food" style="--i:'+i+'" data-i="'+i+'"'+role+' aria-label="'+tileWords(c)+'">'+
-    '<div class="pic" style="--lx:'+lx+'%;--ly:'+ly+'%;--lw:'+lw+'%;--lh:'+lh+'%;--rot:'+(f.rot||0)+'deg;--sk:'+(f.sk||0)+'deg">'+
-    '<img src="'+ART+c.food+'.webp" alt="" draggable="false"><div class="plabel'+wide+'"'+(lab.st?' style="'+lab.st+'"':'')+'>'+lab.small+'</div></div>'+
-    '<svg class="cone" aria-hidden="true"></svg><div class="win">'+lab.big+'</div></'+tag+'>';
+    '<div class="pic"><img src="'+ART+c.food+'.webp" alt="" draggable="false"></div><div class="win">'+dateBox(c)+'</div></'+tag+'>';
 }
 /* Level 1: the two answers, always in the same place (Expired on top), in the words of the question */
 const ICON={bad:'<path d="M7 7l10 10M17 7L7 17"/>',good:'<path d="M5.5 12.5l4.2 4.2L18.5 7.5"/>'};
@@ -230,7 +248,6 @@ function setHint(on,auto){
   if(on){h.textContent=HINT[LV]();h.hidden=false;cardsOf().forEach(c=>pin(c,true))}
   else{document.querySelectorAll('#main .pin[data-h]').forEach(p=>{const host=p.parentNode;p.remove();if(host&&!host.querySelector('.pin'))host.classList.remove('lit')});
     if(i===0){h.textContent=TOGETHER[LV];h.hidden=false}else h.hidden=true}
-  cones();
 }
 function miss(){tries++;if(!easy&&tries>=LEVELS[LV].hintAfter)setHint(true,true)}
 
@@ -267,7 +284,8 @@ function checkDone(){
     bad.forEach(c=>{c.el.classList.remove('sel');c.el.classList.add('no');verdict(c)});
     SFX.oops();say(bad.length===1?badLine(bad[0]):'Those are expired. Their dates are before today.',true);miss();doneState();return}
   const left=cs.filter(c=>c.good&&!c.el.classList.contains('sel'));
-  if(left.length){SFX.oops();say(left.length===1?'There is 1 more food that is still good.':'There are '+left.length+' more foods that are still good.',true);miss();return}
+  if(left.length){SFX.oops();say((left.length===1?'There is 1 more food that is still good.':'There are '+left.length+' more foods that are still good.')+
+    (left.some(c=>c.packed)?' Check USE BY, not PACKED ON.':''),true);miss();return}
   cs.forEach(c=>{verdict(c);if(c.good){c.el.classList.remove('sel');c.el.classList.add('yes')}else c.el.classList.add('rest')});
   say(sel.length===cs.length?'All still good! Every date is after today.':'You found them all!');
   finish(sel[sel.length-1].el);
@@ -284,9 +302,9 @@ function renderRound(){
   const side=LV===2?phoneHTML(rd):calHTML(rd),cards=rd.cards.map(cardHTML);
   /* Level 3 prints every label in a round with the same dot size, sized to the longest line */
   let dpw='';
-  if(LV===2){const mc=Math.max(...rd.cards.flatMap(c=>[...kwLines(c.kw),printed(c),c.lot].filter(Boolean).map(cols)));dpw=' style="--dpw:calc(var(--u)*'+Math.min(.6,34.6/mc).toFixed(3)+')"'}
+  if(LV===2){const mc=Math.max(...rd.cards.flatMap(c=>labelLines(c).map(([s])=>cols(s))));dpw=' style="--dpw:calc(var(--u)*'+Math.min(.6,34.6/mc).toFixed(3)+')"'}
   m.className='';void m.offsetWidth;
-  const dense=LV===2&&rd.cards.some(c=>kwLines(c.kw).length+1+(c.lot?1:0)>3)?' dense':'';
+  const dense=LV===2&&rd.cards.some(c=>labelLines(c).length>3)?' dense':'';
   m.innerHTML='<div class="qrow"><h1 id="q">'+q+'</h1><p class="hint" id="hint"'+(i===0?'':' hidden')+'>'+(i===0?TOGETHER[LV]:'')+'</p></div>'+
     '<div class="stage'+dense+'"'+dpw+'>'+(LV===0?cards[0]+side+answersHTML():side+cards.join(''))+'</div>';
   m.classList.add('enter');
@@ -294,32 +312,7 @@ function renderRound(){
   m.querySelectorAll('.ans').forEach(b=>b.onclick=()=>answer(b));
   $('next').hidden=!done.has(i);$('donebtn').hidden=LV!==2||done.has(i);$('skip').hidden=false;
   if(LV===2)timer=setInterval(()=>{const p=$('ptime');if(p)p.textContent=clockNow()},15000);
-  fitLabels();requestAnimationFrame(cones);setTimeout(cones,520);
 }
-/* Levels 1 and 2: shrink the small printed label if a word is too long for that package's label */
-function fitLabels(){
-  if(LV===2)return;
-  document.querySelectorAll('#main .plabel').forEach(el=>{
-    let s=1;el.style.setProperty('--ls',1);
-    const kids=[...el.children],row=el.classList.contains('wide');
-    const fits=()=>{const W=el.clientWidth,H=el.clientHeight;
-      const w=row?kids.reduce((a,k)=>a+k.offsetWidth,0)*1.08:Math.max(...kids.map(k=>k.offsetWidth));
-      const h=row?Math.max(...kids.map(k=>k.offsetHeight)):kids.reduce((a,k)=>a+k.offsetHeight,0);
-      return w<=W*.94&&h<=H*.96};
-    while(!fits()&&s>.45){s-=.05;el.style.setProperty('--ls',s.toFixed(2))}
-  });
-}
-/* the "zoom" cone from the small label on the package to its big copy below */
-function cones(){
-  document.querySelectorAll('#main .food').forEach(c=>{
-    const cr=c.getBoundingClientRect(),l=c.querySelector('.plabel').getBoundingClientRect(),w=c.querySelector('.win').getBoundingClientRect(),svg=c.querySelector('.cone');
-    if(!cr.width)return;
-    svg.setAttribute('viewBox','0 0 '+cr.width.toFixed(1)+' '+cr.height.toFixed(1));
-    const pt=(x,y)=>(x-cr.left).toFixed(1)+','+(y-cr.top).toFixed(1),k=gunit()*.6;
-    svg.innerHTML='<polygon points="'+pt(l.left,l.top)+' '+pt(l.right,l.top)+' '+pt(w.right-k,w.top+k)+' '+pt(w.left+k,w.top+k)+'"/>';
-  });
-}
-addEventListener('resize',()=>{if(!$('game').hidden){fitLabels();cones()}});
 
 /* ---------- screens: the Fun Friday flow (Next and Skip go on, Back goes back, a whoosh between rounds, a party at the end) ---------- */
 function stopWin(){const ws=$('winstage');if(ws)WINFX.stop(ws)}
@@ -356,8 +349,9 @@ function showDone(){
    It reads the question when a round opens and the date on a package when it is tapped. Level 3 practises reading the printed
    date, so there it reads only the question. ---------- */
 const LINES={};
-const KWSAY={'USE BY':'Use by','BEST BY':'Best by','EXP':'Expires','BEST IF USED BY':'Best if used by'};
-function tileWords(c){return FOODS[c.food].alt+'. '+(LV===0?'':KWSAY[c.kw]+' ')+spoken(c)+'.'}
+const KWSAY={'USE BY':'Use by','BEST BY':'Best by','BB':'Best by','EXP':'Expires','BEST IF USED BY':'Best if used by'};
+function tileWords(c){const pk=c.packed?'Packed on '+MONTH[c.packed.getMonth()]+' '+c.packed.getDate()+', '+c.packed.getFullYear()+'. ':'';
+  return FOODS[c.food].alt+'. '+pk+(LV===0?'':KWSAY[c.kw]+' ')+(c.fmt==='MONyyyy'?MONTH[c.date.getMonth()]+' '+c.date.getFullYear():spoken(c))+'.'}
 function sayRound(){const q=$('q');if(q){LINES.q=q.textContent;speak('q',450)}}
 function sayTile(c){if(LV===2)return;LINES.t=tileWords(c);speak('t')}
 
