@@ -704,9 +704,7 @@ function Activity(el,o){
   /* one step of the physics: the spin that keeps going after a turn by hand (it slows down, as if the air held it), and the
      spring that pushes the package back while pressed and brings it home with a small bounce */
   function phStep(dt){let mv=false;const s=PH.spin;
-    if(s){if(S.step!=='find'||ptr)PH.spin=null;else{const L=LEVELS[level],lim=L.drag?1.75:L.cross?Math.PI/2:0;
-      S.q.multiply(new THREE.Quaternion().setFromAxisAngle(AY,s.vs*dt));
-      if(lim&&s.vt){const t=tiltOf(S.q),nt=Math.max(-lim,Math.min(lim,t+s.vt*dt));if(nt===lim||nt===-lim)s.vt=0;S.q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,nt-t))}
+    if(s){if(S.step!=='find'||ptr)PH.spin=null;else{turnBy(s.vs*dt,s.vt*dt);
       pivot.quaternion.copy(S.q);const f=Math.exp(-dt/.36);s.vs*=f;s.vt*=f;
       if(Math.hypot(s.vs,s.vt)<.1){PH.spin=null;turnTo(360)}else mv=true}}
     const tg=PH.held&&!E.still()?.05:0;
@@ -810,18 +808,24 @@ function Activity(el,o){
   function startLevel(n,r){if(LEVELS[n].l4&&!L4MOD){loadL4().then(()=>{if(alive)startLevel(n,r)},e=>{console.error('Find the Date: Level 4 could not load.',e);doneV.querySelector('.fd-nextlv').hidden=true});return}
     level=n;ROUNDS=makeRounds(n,today,rnd);CHK=ROUNDS.length>0&&ROUNDS.every(r=>typeof r.good==='boolean');won=new Set();round=Math.min(r||0,ROUNDS.length-1);doneV.hidden=true;stopBig();showRound()}
 
-  /* ---------- turning the package: spin around its own up axis, tip toward or away from the class ---------- */
-  const AX=V(1,0,0),AY=V(0,1,0);
+  /* ---------- turning the package: spin around its own up axis, tip toward or away from the class. Neither has a stop: a
+     package can be tipped over its top, stood on its head and brought round again, and spun as often as you like, by finger
+     or by the arrows. While a package stands on its head its own up axis points down, so a spin there is made the other way
+     round (way()): the side that faces the class always goes the way the finger or the arrow goes. ---------- */
+  const AX=V(1,0,0),AY=V(0,1,0),QT=new THREE.Quaternion();
   const tiltOf=qq=>{const u=V(0,1,0).applyQuaternion(qq);return Math.atan2(u.z,u.y)};
+  const way=qq=>V(0,1,0).applyQuaternion(qq).y<-1e-6?-1:1;
+  /* turn the kept pose: s round the package's own up axis, then t round the screen's level line (radians, any size) */
+  function turnBy(s,t){if(s)S.q.multiply(QT.setFromAxisAngle(AY,s));if(t)S.q.premultiply(QT.setFromAxisAngle(AX,t));S.q.normalize()}
   function turnTo(dur){moveTo(S.q,poseView(S.q,S.zoom),dur,()=>{ctl.querySelectorAll('.fd-rb.on').forEach(b=>b.classList.remove('on'));handHint();snapLook()})}
   function flash(a){const b=ctl.querySelector('[data-a="'+a+'"]');if(b)b.classList.add('on')}
-  function spin(dir){if(S.step!=='find')return;S.q.multiply(new THREE.Quaternion().setFromAxisAngle(AY,dir*Math.PI/4));flash(dir>0?'cw':'ccw');E.snd('swoosh');turnTo(420)}
-  function tip(dir){if(S.step!=='find'||!LEVELS[level].cross)return;const t=tiltOf(S.q),nt=Math.max(-Math.PI/2,Math.min(Math.PI/2,t+dir*Math.PI/4)),dl=nt-t;
-    if(Math.abs(dl)<.02){E.snd('click');return}S.q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,dl));flash(dir<0?'up':'down');E.snd('swoosh');turnTo(420)}
+  function spin(dir){if(S.step!=='find')return;turnBy(way(S.q)*dir*Math.PI/4,0);flash(dir>0?'cw':'ccw');E.snd('swoosh');turnTo(420)}
+  function tip(dir){if(S.step!=='find'||!LEVELS[level].cross)return;turnBy(0,dir*Math.PI/4);flash(dir<0?'up':'down');E.snd('swoosh');turnTo(420)}
   function closer(){if(S.step!=='find')return;S.zoom=!S.zoom;root.classList.toggle('zoomed',S.zoom);const z=ctl.querySelector('.zoom');if(z)z.setAttribute('aria-pressed',String(S.zoom));if(LEVELS[level].l4){if(S.zoom){const c2=inset.querySelector('canvas');c2.getContext('2d').clearRect(0,0,c2.width,c2.height);inset.querySelector('svg').innerHTML='';inset.querySelector('.fd-cap2').textContent='looking here';inset.hidden=false}else inset.hidden=true}turnTo(420)}
-  /* taps, drags and pinches on the package (made for an iPad mirrored to the TV). One finger turns it on every level, as far as
-     that level's buttons can (Level 1 spins only, Level 2 tips up to a quarter turn, Levels 3 and 4 move freely). Two fingers:
-     pinch out is Closer, pinch in goes back, one step per pinch. A pinch never taps or turns. */
+  /* taps, drags and pinches on the package (made for an iPad mirrored to the TV). One finger turns it freely on every level:
+     across spins it, up and down tips it, as far round as the finger goes on (the way a spin goes is settled when the drag
+     starts and kept until the finger lifts and the package comes to rest). Two fingers: pinch out is Closer, pinch in goes
+     back, one step per pinch. A pinch never taps or turns. */
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),fingers=new Map();let ptr=null,pinch=null;
   root.addEventListener('gesturestart',e=>e.preventDefault());
   function hitAt(x,y){PH.off=true;place();ndc.set(x/W()*2-1,-(y/H())*2+1);ray.setFromCamera(ndc,cam);let r=null;
@@ -837,12 +841,11 @@ function Activity(el,o){
   stage.addEventListener('pointermove',e=>{if(fingers.has(e.pointerId))fingers.set(e.pointerId,[e.clientX,e.clientY]);
     if(pinch){if(!pinch.done&&fingers.size>1&&S.step==='find'){const [a,b]=[...fingers.values()],r=Math.hypot(a[0]-b[0],a[1]-b[1])/pinch.d0;
         if(S.zoom?r<.8:r>1.25){pinch.done=true;closer()}}return}
-    if(!ptr||e.pointerId!==ptr.id)return;const dx=e.clientX-ptr.lx,dy=e.clientY-ptr.ly,L=LEVELS[level],sm=ptr.samp;
+    if(!ptr||e.pointerId!==ptr.id)return;const dx=e.clientX-ptr.lx,dy=e.clientY-ptr.ly,sm=ptr.samp;
     {let ce=null;try{ce=e.getCoalescedEvents&&e.getCoalescedEvents()}catch(_){}for(const c of ce&&ce.length?ce:[e])sm.push([c.timeStamp||e.timeStamp||performance.now(),c.clientX,c.clientY]);
       const tn=sm[sm.length-1][0];while(sm.length>2&&tn-sm[0][0]>150)sm.shift()}
-    if(!ptr.drag&&S.step==='find'&&Math.hypot(e.clientX-ptr.x,e.clientY-ptr.y)>10){ptr.drag=true;tw=null;S.q.copy(pivot.quaternion);S.dragged=true;handHint();root.classList.add('dragging')}
-    if(ptr.drag){const k=Math.PI/(.6*W()),lim=L.drag?1.75:L.cross?Math.PI/2:0;S.q.multiply(new THREE.Quaternion().setFromAxisAngle(AY,dx*k));
-      if(lim){const t=tiltOf(S.q),nt=Math.max(-lim,Math.min(lim,t+dy*k));S.q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,nt-t))}pivot.quaternion.copy(S.q);kick()}
+    if(!ptr.drag&&S.step==='find'&&Math.hypot(e.clientX-ptr.x,e.clientY-ptr.y)>10){ptr.drag=true;tw=null;S.q.copy(pivot.quaternion);ptr.way=way(S.q);S.dragged=true;handHint();root.classList.add('dragging')}
+    if(ptr.drag){const k=Math.PI/(.6*W());turnBy(ptr.way*dx*k,dy*k);pivot.quaternion.copy(S.q);kick()}
     ptr.lx=e.clientX;ptr.ly=e.clientY});
   const endPtr=(e,cancel)=>{fingers.delete(e.pointerId);if(!fingers.size&&PH.held){PH.held=false;kick()}if(pinch){if(!fingers.size)pinch=null;return}
     if(!ptr||e.pointerId!==ptr.id)return;const p=ptr;ptr=null;root.classList.remove('dragging');
@@ -851,7 +854,7 @@ function Activity(el,o){
   /* how fast the finger was moving when it let go (the last tenth of a second). A finger that stopped first leaves it still. */
   function fling(p,now){PH.why='';if(E.still()){PH.why='calm';return null}const sm=p.samp,b=sm[sm.length-1];if(!b||now-b[0]>70){PH.why='stopped '+(b?Math.round(now-b[0]):'-');return null}
     let i=sm.length-1;while(i>0&&b[0]-sm[i-1][0]<=100)i--;if(i===sm.length-1)i=Math.max(0,i-1);const a=sm[i],dt=(b[0]-a[0])/1000;if(dt<.008){PH.why='dt '+dt+' n '+sm.length;return null}
-    const L=LEVELS[level],k=Math.PI/(.6*W());let vs=(b[1]-a[1])/dt*k,vt=L.drag||L.cross?(b[2]-a[2])/dt*k:0;const m=Math.hypot(vs,vt);
+    const k=Math.PI/(.6*W());let vs=(p.way||1)*(b[1]-a[1])/dt*k,vt=(b[2]-a[2])/dt*k;const m=Math.hypot(vs,vt);
     if(m<.35){PH.why='slow '+m.toFixed(2);return null}if(m>6){vs*=6/m;vt*=6/m}return{vs,vt}}
   stage.addEventListener('pointerup',e=>endPtr(e,false));stage.addEventListener('pointercancel',e=>endPtr(e,true));
   function tap(x,y){if(!P)return;if(S.step==='find')tapFind(x,y);else if(S.step==='say')tapSay(x,y)}
@@ -1124,6 +1127,7 @@ function Activity(el,o){
     try{renderer.dispose();renderer.forceContextLoss()}catch(e){}const c=renderer.domElement;c.width=c.height=1;el.innerHTML=''}
 
   /* ---------- for tests only: read the state and find where things are on the screen ---------- */
+  const poseQ=(rx,ry,how)=>Array.isArray(how)?new THREE.Quaternion().fromArray(how).normalize():how==='t'?new THREE.Quaternion().setFromAxisAngle(AX,rx).multiply(new THREE.Quaternion().setFromAxisAngle(AY,ry)):new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,0,'YXZ'));
   const test={state:()=>({level,round,step:S.step,misses:S.misses,easy:S.easy,zoom:S.zoom,won:[...won],dateTapped:S.dateTapped,busy:!!tw||S.step==='move'||(S.step==='say'&&CHK&&performance.now()<S.vready)||!!PH.spin||PH.held||Math.abs(PH.dip)>.002||Math.abs(PH.dv)>.01,ph:{dbg:PH.dbg||'',dip:+PH.dip.toFixed(4),spin:PH.spin?+Math.hypot(PH.spin.vs,PH.spin.vt).toFixed(3):0,held:PH.held,float:floatOn()},fit:S.fitInfo,fitDbg:S.fitDbg,say:S.sayInfo,zoomInfo:S.zoomInfo,closer:S.zoom?(S.zoomFocus?'framed':'1.7x'):'',
       tilt:tiltOf(S.q),q:S.q.toArray().map(v=>+v.toFixed(4)),date:RD&&RD.ds,right:RD&&RD.spoken,choices:S.ans&&S.ans.map(a=>a.t),bubble:hudR.textContent,card:qqEl.textContent,spot:P&&P.spot,
       src:S.src?(S.src.amber?'amber:'+(S.src.amber.ch?S.src.amber.ch.k:S.src.amber.rg.what):'parts:'+S.src.parts.length+' veils:'+S.src.veils.length):'',
@@ -1135,10 +1139,9 @@ function Activity(el,o){
     point(what){if(!P)return null;const [kind,name]=what.split(':'),list=kind==='line'?P.lines.filter(l=>name==='ok'?l.ok:!l.ok):kind==='reg'?P.regs.filter(r=>r.kind===name):P.chunks.filter(c=>c.kind===name);
       let best=null;for(const r of list){const d=faceDot(r.face,r.box),f=P.faces[r.face],p=scr(f.map((r.box[0]+r.box[2])/2,(r.box[1]+r.box[3])/2).applyMatrix4(P.group.matrixWorld));if(!best||d>best.dot)best={x:p[0],y:p[1],dot:d}}return best},
     hit(x,y){if(!P)return null;const h=hitAt(x,y);if(!h)return null;if(!h.face)return{face:''};const ln=near(P.lines,h,2.5),r=ln?null:near(P.regs,h,2.5);return{face:h.face,line:ln?(ln.ok?'ok':lineKind(ln)):null,reg:r?r.kind:null}},
-    /* the turns that show the date best from here: {k: spins (+ = right), t: tips (+ = down)} */
-    aim(){if(!P)return null;const q0=pivot.quaternion.clone(),L=LEVELS[level];let best=null;
-      for(let k=-3;k<=4;k++)for(const t of L.cross?[0,1,-1,2,-2]:[0]){const q=S.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(AY,k*Math.PI/4));
-        for(let n=0;n<Math.abs(t);n++){const a=tiltOf(q),na=Math.max(-Math.PI/2,Math.min(Math.PI/2,a+Math.sign(t)*Math.PI/4));q.premultiply(new THREE.Quaternion().setFromAxisAngle(AX,na-a))}
+    /* the turns that show the date best from here: {k: spins (+ = right), t: tips (+ = down)}, the spins first, as the arrows make them */
+    aim(){if(!P)return null;const q0=pivot.quaternion.clone(),L=LEVELS[level],w=way(S.q);let best=null;
+      for(let k=-3;k<=4;k++)for(const t of L.cross?[0,1,-1,2,-2,3,-3,4]:[0]){const q=S.q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(AY,w*k*Math.PI/4)).premultiply(new THREE.Quaternion().setFromAxisAngle(AX,t*Math.PI/4));
         pivot.quaternion.copy(q);pivot.updateMatrixWorld(true);let d=-2;for(const l of P.lines)if(l.ok)d=Math.max(d,faceDot(l.face,l.box));
         (best=best||[]).push({k,t,d})}
       pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);
@@ -1150,11 +1153,14 @@ function Activity(el,o){
     info(){const m=renderer.info;return{tris:m.render.triangles,calls:m.render.calls,geo:m.memory.geometries,tex:m.memory.textures,build:built,px:renderer.domElement.width+'x'+renderer.domElement.height,fits:FITN.slice()}},
     /* the look's step (0 = full, 1, 2 = plainest). quality(n) holds it there: a slow test machine would step down by itself */
     quality(n){if(n!=null){QL.lock=true;quality(n);if(P)draw()}return QSLOW},
-    /* turn the package straight to a pose (tip rx, spin ry, in radians), with no move */
-    pose(rx,ry){if(!P)return false;tw=null;PH.spin=null;S.q.setFromEuler(new THREE.Euler(rx,ry,0,'YXZ'));pivot.quaternion.copy(S.q);setView(poseView(S.q,S.zoom));draw();return true},
+    /* turn the package straight to a pose (tip rx, spin ry, in radians), with no move. how: none = the pose as a round gives
+       it (tipped on its own level line, then spun on the spot); 't' = as the finger and the arrows turn it (spun round its own
+       up axis, then tipped toward the class), any size of turn; [x,y,z,w] = any pose at all */
+    pose(rx,ry,how){if(!P)return false;tw=null;PH.spin=null;S.q.copy(poseQ(rx,ry,how));pivot.quaternion.copy(S.q);setView(poseView(S.q,S.zoom));draw();return true},
+    way:()=>way(S.q),
     /* the package's outline on the screen (px: left, top, right, bottom) as the camera would frame it at a pose, with no picture
        drawn and nothing changed: for checking the fit at every pose and screen size */
-    fitAt(rx,ry){if(!P)return null;const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,0,'YXZ')),q0=pivot.quaternion.clone(),keep=[S.zoomFocus,S.fitInfo,S.fitDbg],n0=FITN[1],v=poseView(q,false),fit=S.fitInfo;
+    fitAt(rx,ry,how){if(!P)return null;const q=poseQ(rx,ry,how),q0=pivot.quaternion.clone(),keep=[S.zoomFocus,S.fitInfo,S.fitDbg],n0=FITN[1],v=poseView(q,false),fit=S.fitInfo;
       pivot.quaternion.copy(q);pivot.updateMatrixWorld(true);placeAt(v.tgt,v.d,v.el);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
       hullW().forEach(p=>{const s=scr(p);x0=Math.min(x0,s[0]);x1=Math.max(x1,s[0]);y0=Math.min(y0,s[1]);y1=Math.max(y1,s[1])});
       pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);place();[S.zoomFocus,S.fitInfo,S.fitDbg]=keep;return{box:[x0,y0,x1,y1].map(Math.round),d:+v.d.toFixed(3),sure:FITN[1]-n0,fit}},
