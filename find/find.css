@@ -133,7 +133,8 @@
 #find .fd-cal{position:absolute;z-index:4;top:calc(var(--u)*1.5);bottom:calc(var(--u)*1.5);right:calc(var(--u)*1.5);width:calc(25vw - var(--u)*1.5);display:flex;flex-direction:column;gap:calc(var(--u)*1.6);color:var(--ink);
   --U0:var(--u);--mf:calc(var(--u)*4.4);--ring:calc(var(--u)*.55);--mku:calc(var(--u)*.66);--past:#E4E8EE;--pastbar:#97A3B4}
 #find .fd-mblock{flex:1.62 1 0;display:flex;flex-direction:column;min-height:0}
-#find .fd-year{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.2);color:var(--soft);margin:0 0 calc(var(--u)*.5) calc(var(--u)*.3);line-height:1}
+/* the year, big over the months (the months give up the room it takes; this month keeps its size) */
+#find .fd-year{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*7);color:var(--ink);text-align:center;margin:0 0 calc(var(--u)*.6);line-height:1;letter-spacing:.02em}
 #find .fd-months{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:calc(var(--u)*1);min-height:0}
 /* a month is a little calendar page: the big calendar's red bar with the month's name, its number under it, the same size and lighter */
 #find .fd-m{position:relative;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;min-height:calc(var(--u)*7);border-radius:calc(var(--u)*1.3);background:#fff;
@@ -142,12 +143,9 @@
   padding:calc(var(--u)*.95) 0 calc(var(--u)*.5);border-radius:calc(var(--u)*1.3) calc(var(--u)*1.3) 0 0}
 #find .fd-bar i{position:relative;z-index:3;font-style:normal}
 #find .fd-m b{position:relative;z-index:3;flex:1;display:grid;place-items:center;padding-bottom:calc(var(--u)*.3);font-size:var(--mf);font-weight:500;line-height:1}
-/* past months: the whole page grey (its bar too) and crossed out corner to corner, like the past days (--xa, --xw from find.js) */
+/* past months: the whole page greyed out (its bar too), with no cross */
 #find .fd-m.past{background:var(--past);box-shadow:none;color:#5F7391}
 #find .fd-m.past .fd-bar{background:var(--pastbar)}
-#find .fd-m.past::before,#find .fd-m.past::after{content:"";position:absolute;z-index:2;left:50%;top:50%;width:var(--xw,100%);height:calc(var(--u)*.5);background:var(--stop);opacity:.55;border-radius:99px}
-#find .fd-m.past::before{transform:translate(-50%,-50%) rotate(var(--xa,42deg))}
-#find .fd-m.past::after{transform:translate(-50%,-50%) rotate(calc(var(--xa,42deg)*-1))}
 /* this month: outlined in blue, the way today is outlined in the day grid */
 #find .fd-m.now{background:#fff;color:var(--blue)}
 #find .fd-m.now::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 var(--ring) var(--blue);pointer-events:none}
@@ -158,6 +156,7 @@
 #find .fd-big .l1 .d,#find .fd-big .cal.six.l1c .d{height:auto}
 #find .fd-big .calhead{font-size:var(--mf)}
 #find .fd-big .calhead::before,#find .fd-big .calhead::after{background:#fff}
+#find .fd-big .d.past::before,#find .fd-big .d.past::after{content:none}
 /* the date on the calendar: Easier (the game's sun yellow), or after an answer red (expired) or green (still good) */
 #find .fd-cal .mark{--mk:var(--sun)}
 #find .fd-cal .mark.bad{--mk:var(--stop)}
