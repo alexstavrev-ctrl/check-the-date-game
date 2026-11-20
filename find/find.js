@@ -475,7 +475,7 @@ const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,
 /* level4.js and its look, level4.css (every rule under #find .fd-l4), load the first time someone picks Level 4 */
 function loadCSS4(){return new Promise(ok=>{if(document.querySelector('link[data-fd-l4]'))return ok();const l=document.createElement('link');l.rel='stylesheet';
   l.href=new URL('level4.css',HERE).href;l.setAttribute('data-fd-l4','');l.onload=()=>ok();l.onerror=()=>{console.error('Find the Date: level4.css could not load.');ok()};document.head.appendChild(l)})}
-async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js?v=3',HERE).href),loadCSS4()]);
+async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js?v=4',HERE).href),loadCSS4()]);
     /* Level 4's own package pictures: level4.js may export art = {name: {file: 'name.webp', trim: [x0,y0,x1,y1]}} (files in find/art/,
        trim = the solid box in the 600 px file). They load here, before any build(), so kit.art() can draw them */
     const A=r[0].art;if(A&&typeof A==='object'){for(const n of Object.keys(A))if(!ART_FILES[n]&&A[n]&&A[n].file){ART_FILES[n]=A[n].file;ART_TRIM[n]=A[n].trim||[0,0,600,600]}await loadArt()}

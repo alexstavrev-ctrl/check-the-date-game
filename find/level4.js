@@ -72,57 +72,81 @@ const MILK_NF = {serv: '16 servings per container', size: '1 cup (240mL)', cal: 
   rows: [['Total Fat', '8g', '10%'], ['Saturated Fat', '5g', '25%', 1, false], ['Trans Fat', '0g', '', 1, false], ['Cholesterol', '35mg', '12%'], ['Sodium', '125mg', '5%'],
     ['Total Carbohydrate', '12g', '4%'], ['Total Sugars', '12g', '', 1, false], ['Protein', '8g', '']],
   vit: [['Vitamin D', '2.5mcg', '10%'], ['Calcium', '300mg', '25%'], ['Potassium', '380mg', '8%']]};
-/* ---------- the gallon jug's shape: one smooth solid, worked out once per page and kept. All in mm. It is a dairy's
-   blow-moulded gallon: a rounded square 150 mm wide that stands straight to the shoulder (126 mm up), then leans in on
-   all four sides, more and more round, to a short neck 41 mm across; a band for the labels lies 1.2 mm back; the left and
-   the right side each have a round dimple; and on the back-right corner is the handle: a hollow bar that goes straight
-   up from the shoulder, flush with the corner, and turns in to the neck. The corner behind it is scooped out for the
-   fingers, so you can see through the hand hole. s = how far out along that corner's line, w = across it. ---------- */
+/* ---------- the gallon jug's shape: one smooth solid, worked out once per page and kept. All in mm, measured row by row
+   on a photo of a real dairy gallon (the outline of this shape lies within about 1 mm of the photo's). A square 150 mm
+   wide and 253 mm tall with its cap. The sides stand straight to 86 mm; from there the top is a dome that leans in
+   slowly at first and then faster, runs straight from 200 mm and turns in under the neck's ring at 228 mm, so the jug
+   has soft, full shoulders and almost no neck. The mould closes corner to corner: the two corners on that seam (the
+   handle's, back right, and the pouring one, front left) are wide and round; the other two are tight and show as a
+   crisp line from the foot to the neck. The handle is a flat strap on the seam: a short arm out from the neck, an
+   elbow, and a bar that comes down in a gentle bow onto the shoulder. Behind it the corner is cut away for the
+   fingers: a wall that leans like the handle, and under it a shelf that falls away to both sides. The foot has a
+   round heel (rounder at the wide corners), and a groove under it from tight corner to tight corner.
+   It holds 3.8 litres, as a gallon does. u = how far out along the handle's corner, w = across it. ---------- */
 let JUG = null;
 function jugShape() {
   if (JUG) return JUG;
-  const A = 75, CR = 28, REC = 1.2, YB = 126, YN = 214, RN = 20.5, HN = 221, TOP = 246, SQ = Math.SQRT1_2, TAU = 2 * Math.PI;
+  const A = 75, RC = 5, RB = 44, RN = 19.6, RK = 17.2, TOP = 241, SQ = Math.SQRT1_2, TAU = 2 * Math.PI;
   const cl = (v, a, b) => v < a ? a : v > b ? b : v, sst = (a, b, v) => { const t = cl((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-  const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k / 4; };
-  const smax = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.max(a, b) + h * h * k / 4; };
-  /* the outline: half the jug's width at every height (a table, two steps per mm) */
-  const OUT = K3.fillet([[A, -8], [A, YB, 26], [54, 176, 60], [RN, YN, 11], [RN, TOP + 8]], 14), Y0 = -8, NA = (TOP + 16) * 2, tab = new Float32Array(NA + 2);
-  for (let i = 0, j = 0; i <= NA + 1; i++) { const y = Y0 + i / 2; while (j < OUT.length - 2 && OUT[j + 1][1] <= y) j++; const p = OUT[j], q = OUT[j + 1]; tab[i] = p[0] + (q[0] - p[0]) * cl((y - p[1]) / ((q[1] - p[1]) || 1), 0, 1); }
-  const aAt = y => { const f = cl((y - Y0) * 2, 0, NA), i = Math.floor(f); return tab[i] + (tab[i + 1] - tab[i]) * (f - i); };
-  /* how round the jug is across: a square with 28 mm corners up to the shoulder, a circle at the neck */
-  const rat = y => { const t = cl((y - YB) / (YN - YB), 0, 1); return CR / A + (1 - CR / A) * t * Math.sqrt(t); };
-  const sec = (x, z, a, c) => { const qx = Math.abs(x) - (a - c), qz = Math.abs(z) - (a - c); return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - c; };
-  const band = y => sst(18, 26, y) * (1 - sst(114, 122, y));      /* soft edges: the steps are wider than the mesh is fine */
-  /* the handle's middle line (s, y), and a table of the distance to it */
-  const HP = K3.fillet([[83.5, 100], [83.5, 199, 30], [18, 206]], 16), RR = 10, RT = 12.5;
-  const S0 = 2, S1 = 100, H0 = 84, H1 = 226, GW = S1 - S0 + 1, GH = H1 - H0 + 1, dt = new Float32Array(GW * GH);
-  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const s = S0 + i, y = H0 + j; let best = 1e9;
+  /* two surfaces that meet: cut = what is inside both, join = what is inside either, each with a round edge of r mm */
+  const cut = (a, b, r) => Math.min(-r, Math.max(a, b)) + Math.hypot(Math.max(r + a, 0), Math.max(r + b, 0));
+  const join = (a, b, r) => Math.max(r, Math.min(a, b)) - Math.hypot(Math.max(r - a, 0), Math.max(r - b, 0));
+  /* the dome: how far a wide corner has come in at each height (measured on the photo's outline): a curve from 86 to
+     200 mm, straight to 216 mm, and a last turn in under the neck's ring. dome = 0 on the straight sides, 1 at its top */
+  const D0 = Math.SQRT2 * A - (Math.SQRT2 - 1) * RB, DH0 = 86, DH1 = 200, DH2 = 216, DI = 35.75, DP = 3.05, DS = DI * DP / (DH1 - DH0), HT = 228;
+  const inset = h => h <= DH0 ? 0 : h <= DH1 ? DI * ((h - DH0) / (DH1 - DH0)) ** DP : DI + DS * (h - DH1) + (h > DH2 ? .0202 * (h - DH2) * (h - DH2) : 0), RT = D0 - inset(HT), dome = h => inset(h) / (D0 - RT);
+  /* above the dome only the neck: its radius by height (the cap and the ring of lugs sit on it) */
+  const NK = K3.fillet([[RT, HT], [RN, HT + 1.8, .8], [RN, 236.6, .5], [RK, 237.6, .5], [RK, TOP + 14]], 6);
+  const neck = y => { let j = 0; while (j < NK.length - 2 && NK[j + 1][1] <= y) j++; const p = NK[j], q = NK[j + 1]; return p[0] + (q[0] - p[0]) * cl((y - p[1]) / ((q[1] - p[1]) || 1), 0, 1); };
+  /* tables, two steps per mm: half the width across the flat sides, the tight and the wide corners' radius (up the dome
+     the square shrinks and all four corners grow into the neck's circle), and how much the side leans */
+  const Y0 = -20, NA = (TOP + 30) * 2, bT = new Float32Array(NA + 2), cT = new Float32Array(NA + 2), wT = new Float32Array(NA + 2), lean = new Float32Array(NA + 2);
+  for (let i = 0; i <= NA + 1; i++) { const y = Y0 + i / 2;
+    if (y <= HT) { const g = dome(y); bT[i] = A - (A - RT) * g; cT[i] = RC + (RT - RC) * g; wT[i] = RB + (RT - RB) * g; } else bT[i] = cT[i] = wT[i] = neck(y); }
+  for (let i = 0; i <= NA + 1; i++) { const a = Math.max(i - 1, 0), b = Math.min(i + 1, NA + 1); lean[i] = 1 / Math.hypot(1, (bT[b] - bT[a]) / (b - a) * 2); }
+  const at = (t, y) => { const f = cl((y - Y0) * 2, 0, NA), i = Math.floor(f); return t[i] + (t[i + 1] - t[i]) * (f - i); };
+  /* across: a square with two wide corners and two tight ones */
+  const sec = (x, z, b, rc, rb) => { const r = Math.min(x * z > 0 ? rc : rb, b), qx = Math.abs(x) - (b - r), qz = Math.abs(z) - (b - r); return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - r; };
+  /* the handle's middle line (u, y), and a table of the distance to it: out from the neck, round the elbow and down in
+     a gentle bow onto the shoulder. The bar is 14 mm thick and 26 mm wide; the short arm is thinner at the elbow and
+     grows thicker toward the neck */
+  const HB = 7.1, HA = 6.3, HG = .17, HV = 13, RR = 6.2, EU = 53.7, EY = 211.1, BU = 72.5, BY = 146;
+  const hp = [[8, EY + (EU - 8) * .183], [EU, EY, 11]];
+  for (let y = EY - 14; y > BY + 2; y -= 4) hp.push([BU - (BU - EU) * ((y - BY) / (EY - BY)) ** 1.8, y]);
+  hp.push([BU, BY], [BU, 124]);
+  const HP = K3.fillet(hp, 10), S0 = -12, S1 = 100, T0 = 104, T1 = 246, GW = S1 - S0 + 1, GH = T1 - T0 + 1, dt = new Float32Array(GW * GH);
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const s = S0 + i, y = T0 + j; let best = 1e9;
     for (let n = 0; n < HP.length - 1; n++) { const ax = HP[n][0], ay = HP[n][1], bx = HP[n + 1][0] - ax, by = HP[n + 1][1] - ay, tt = cl(((s - ax) * bx + (y - ay) * by) / (bx * bx + by * by || 1), 0, 1), d = Math.hypot(s - ax - bx * tt, y - ay - by * tt); if (d < best) best = d; }
     dt[j * GW + i] = best; }
-  const dH = (s, y) => { const fi = s - S0, fj = y - H0; if (fi < 0 || fj < 0 || fi >= GW - 1 || fj >= GH - 1) return 99; const i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, o = j * GW + i;
+  const dH = (s, y) => { const fi = s - S0, fj = y - T0; if (fi < 0 || fj < 0 || fi >= GW - 1 || fj >= GH - 1) return 99; const i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, o = j * GW + i;
     return (dt[o] * (1 - a) + dt[o + 1] * a) * (1 - b) + (dt[o + GW] * (1 - a) + dt[o + GW + 1] * a) * b; };
+  /* the cut behind the handle: the wall's lean, and the shelf's height under the handle */
+  const WL = Math.hypot(14.4, 56.5), WNX = 56.5 / WL, WNY = 14.4 / WL, YS = 137.3;
   /* the whole jug as one field: below zero inside the plastic's outer skin, above zero outside */
   const F = (x, y, z) => {
-    const a = aAt(y), f0 = sec(x, z, a, a * rat(y)); let f = f0 + REC * band(y);
-    if (y > 36 && y < 106 && (x > 40 || x < -40)) { const rho = Math.hypot(y - 71, z) / 33; if (rho < 1) f += 4.2 * (1 - sst(.6, 1, rho)); }      /* the two dimples */
-    if (y > 108) { const s = (x - z) * SQ, w = (x + z) * SQ;
-      if (s > 6) {
-        f = smax(f, (1 - Math.hypot((s - 86) / 38, (y - 163) / 36, w / 36)) * 36, 10);                 /* the scoop behind the handle */
-        if (w > -40 && w < 40) { const rho = Math.hypot(dH(s, y) / RR, w / RT); if (rho < 3) f = smin(f, (rho - 1) * RR, 9); }                   /* the handle */
-        f = Math.max(f, sec(x, z, A, CR) + REC * band(y)); } }                                         /* nothing stands out past the corner's own line */
-    f = smax(f, 3.4 * sst(12, 40, -f0) - y, 9);            /* the foot: a round heel, and a base pushed up a little in the middle */
-    return smax(f, y - TOP, 1.2); };                        /* the neck goes on up, into its ring and cap */
-  const N = K3.nets(F, [-79, -2.5, -79, 79, 250, 79], 2.5, {shade: .6});
+    const u = (x - z) * SQ, w = (x + z) * SQ;
+    let f = sec(x, z, at(bT, y), at(cT, y), at(wT, y)) * at(lean, y);
+    if (y < 36) { f = cut(f, -y, 13 + 11 * sst(-20, 40, Math.abs(u) - Math.abs(w)));       /* the foot: a round heel */
+      f = cut(f, 8.612 - .6625 * Math.sqrt(u * u + 6) - .7489 * y, 4.5); }                /* the groove under it */
+    if (y > 104 && u > -4) {
+      const dw = (u - 34.2) * WNX + (y - 200) * WNY, ds = y - YS + .006 * w * w;            /* past the leaning wall, above the shelf: cut away */
+      f = cut(f, -cut(-dw, -ds, 8), 16);
+      if (w > -40 && w < 40) { const hu = HB + (HA - HB + HG * Math.max(0, 48 - u)) * sst(204, 212, y), qa = dH(u, y) - (hu - RR), qb = Math.abs(w) - (HV - RR), d = Math.hypot(Math.max(qa, 0), Math.max(qb, 0)) + Math.min(Math.max(qa, qb), 0) - RR;
+        if (d < 24) f = join(f, d, 8 + 7 * sst(192, 204, y) * sst(216, 208, y) * sst(52, 42, u) * sst(13, 7, Math.abs(w))); }   /* the handle, with a web under its arm */
+      f = cut(f, Math.min(Math.hypot(x, z) - RN, y - (HT + .3)), 1.5); }                  /* above the dome only the neck stands */
+    return cut(f, y - TOP, 1.2); };
+  const N = K3.nets(F, [-80, -2.5, -80, 80, 245, 80], 2.5, {shade: .55});
   /* to scene units, with a u, v for the plastic's grain (u round the jug, v up); a triangle that crosses the seam at the
      back gets its own corners with u past 1 */
   const pos = Array.from(N.pos, v => v / 100), nor = Array.from(N.nor), uv = [], col = [], idx = N.idx.slice(), dup = new Map();
-  /* the milk stands to the foot of the neck: above it the plastic has no white behind it and looks a little grey */
-  for (let i = 0; i < N.n; i++) { const y = N.pos[i * 3 + 1], c = N.shade[i], air = sst(204, 207.5, y); uv.push(Math.atan2(N.pos[i * 3], N.pos[i * 3 + 2]) / TAU + .5, y / TOP); col.push(c * (1 - .13 * air), c * (1 - .105 * air), c * (1 - .075 * air)); }
+  /* the milk stands to 199 mm, just under the date: above it the plastic has no white behind it and looks a little grey */
+  for (let i = 0; i < N.n; i++) { const y = N.pos[i * 3 + 1], c = N.shade[i], air = sst(197.5, 200.5, y); uv.push(Math.atan2(N.pos[i * 3], N.pos[i * 3 + 2]) / TAU + .5, y / TOP); col.push(c * (1 - .14 * air), c * (1 - .115 * air), c * (1 - .09 * air)); }
   for (let f = 0; f < idx.length; f += 3) { const ua = uv[idx[f] * 2], ub = uv[idx[f + 1] * 2], uc = uv[idx[f + 2] * 2]; if (Math.max(ua, ub, uc) - Math.min(ua, ub, uc) < .5) continue;
     for (let j = 0; j < 3; j++) { const v = idx[f + j]; if (uv[v * 2] >= .5) continue; let w = dup.get(v);
       if (w === undefined) { w = pos.length / 3; dup.set(v, w); pos.push(pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]); nor.push(nor[v * 3], nor[v * 3 + 1], nor[v * 3 + 2]); uv.push(uv[v * 2] + 1, uv[v * 2 + 1]); col.push(col[v * 3], col[v * 3 + 1], col[v * 3 + 2]); }
       idx[f + j] = w; } }
-  return JUG = {A, CR, REC, HN, RN, TOP, per: 8 * (A - CR) + TAU * CR, pos: new Float32Array(pos), nor: new Float32Array(nor), uv: new Float32Array(uv), col: new Float32Array(col), idx};
+  /* K, B1, DH1: the flat sides' straight stretch near the top (half the width B1 at DH1 mm, K mm less for each mm up) */
+  return JUG = {A, RC, RB, RN, TOP, HT, K: (A - RT) / (D0 - RT) * DS, B1: A - (A - RT) * dome(DH1), DH1, per: 4 * (2 * A - RC - RB) + Math.PI * (RC + RB), pos: new Float32Array(pos), nor: new Float32Array(nor), uv: new Float32Array(uv), col: new Float32Array(col), idx};
 }
 /* round.close: the close look's framing, tested with the v3 layout. pts are points in mm, group-local (origin at the bottom
    centre); frame them all in the free area, with the package at rx, ry (YXZ). Most are the 8 corners of a box round the
@@ -641,13 +665,14 @@ export function rounds(kit, {today, rand}) {
   }
 
   /* ======================================================================================================
-     6. Gallon of whole milk from a California dairy: the jug of jugShape() above (150 x 150 mm, 254 mm tall with its cap),
-        white plastic with the milk showing a little whiter below the neck, a small red screw cap (43 mm) over the neck's
-        ring, the handle at the back-right corner. Two paper labels lie in the label band and wrap round its corners:
-        on the front the brand, a red VITAMIN D / WHOLE MILK band, a cow picture, the price and 1 GALLON; on the back
-        Nutrition Facts, KEEP REFRIGERATED, ingredients, the dairy, the bar code and the recycling mark.
-        The date is inkjet on the neck under the cap, with no clue words, over the dairy's code (06 = California).
-        New: no clue words at all.
+     6. Gallon of whole milk from a California dairy: the jug of jugShape() above (150 x 150 mm, 253 mm tall with its cap),
+        natural plastic with the milk showing white through it and the empty top a little grey; a red screw cap (38 mm)
+        with its break-off ring sits right on the neck's ring of lugs; the handle is at the back-right corner. Two paper
+        labels lie flat on the front and the back and bend a little way round the wide corner beside them: on the front
+        the brand, a red VITAMIN D / WHOLE MILK band, a cow picture, the price and 1 GALLON; on the back Nutrition Facts,
+        KEEP REFRIGERATED, ingredients, the dairy, the bar code and the recycling mark.
+        The date is inkjet on the front of the dome, near the cap (where a dairy prints it), with no clue words, over the
+        dairy's code (06 = California). New: no clue words at all.
      ====================================================================================================== */
   {
     const d = add(gone.has(5) ? -ri(2, 6) : ri(5, 14)), m = d.getMonth(), day = d.getDate(), dateText = `${MON[m]} ${p2(day)}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'day', i: 4, n: 2}];
@@ -656,14 +681,18 @@ export function rounds(kit, {today, rand}) {
     let d2 = ri(1, 9); while ((d1 - 1 === m && d2 === day) || d1 - 1 === 5 && d2 === d1) d2 = ri(1, 9);
     const code = `06-${d1}${d2}${ri(10, 99)}`;
     const build = () => {
-      const pkg = kit.newPkg('milk'), RED = '#D3312B', NAVY = '#1D3F7A', WHITE = '#F2F5F8', J = jugShape(), HN = J.HN, RN = J.RN;
-      /* the jug: milky plastic, dull, with the soft orange peel of a blown bottle; its hollows are shaded */
-      plain(pkg, 'body', K3.mesh(K3.geo(J.pos, J.nor, J.uv, J.idx, J.col), K3.surf('hdpe', {color: WHITE, mm: [J.per, J.TOP], ao: true})));
-      /* two paper labels on the band, 120 x 84 mm: one on the front, one on the back (the jug starts turned that way). A label
-         lies flat on its side of the jug and bends round the two corners beside it: p = mm from its middle, y = mm up */
-      const LW = 120, LH = 84, LY = 28, fl = J.A - J.CR, rc = J.CR - J.REC;
-      const onBand = (p, y, lift, sg) => { const q = Math.abs(p), sx = p < 0 ? -sg : sg, ph = q <= fl ? 0 : Math.min((q - fl) / rc, Math.PI / 2), nx = Math.sin(ph), nz = Math.cos(ph);
-        return {p: V(MM(sx * (Math.min(q, fl) + (rc + lift) * nx)), MM(y), MM(sg * (fl + (rc + lift) * nz))), n: V(sx * nx, 0, sg * nz)}; };
+      const pkg = kit.newPkg('milk'), RED = '#D3312B', NAVY = '#1D3F7A', WHITE = '#F6F5EF', J = jugShape(), RN = J.RN;
+      /* the jug: milky plastic, dull, with the soft orange peel of a blown bottle; its hollows are shaded. The mould's seam
+         shows as a hairline where its two halves met: up the two wide corners, over the handle and across the foot */
+      const sc = cv(2048, 4, 1), sx = flat(sc, '#FFFFFF');
+      for (const u0 of [.375, .875]) for (let i = -9; i <= 9; i++) { sx.fillStyle = `rgba(118,124,132,${(.2 * Math.exp(-i * i / 9)).toFixed(3)})`; sx.fillRect(Math.round(u0 * 2048) + i, 0, 1, 4); }
+      plain(pkg, 'body', K3.mesh(K3.geo(J.pos, J.nor, J.uv, J.idx, J.col), K3.surf('hdpe', {color: WHITE, map: K3.tex(sc, {wrap: true}), mm: [J.per, J.TOP], ao: true})));
+      /* two paper labels, 120 x 84 mm: one on the front, one on the back (the jug starts turned that way). A label lies flat
+         on its side of the jug, 5 mm toward the tight corner, and bends round the wide corner at its other end:
+         p = mm from its middle (toward the tight corner), y = mm up */
+      const LW = 120, LH = 84, LY = 24, SH = 5, fl = J.A - J.RB;
+      const onBand = (p, y, lift, sg) => { const q = p + SH, ph = q >= -fl ? 0 : Math.min((-q - fl) / J.RB, Math.PI / 2), nx = -Math.sin(ph), nz = Math.cos(ph);
+        return {p: V(MM(sg * (Math.max(q, -fl) + (J.RB + lift) * nx)), MM(y), MM(sg * (fl + (J.RB + lift) * nz))), n: V(sg * nx, 0, sg * nz)}; };
       const label = (name, c, sg) => { const S = K3.sheet(LW, LH, 2.5, 5), pos = [], nor = [], uv = [];
         for (const [a, b] of S.pts) { const o = onBand(a - LW / 2, LY + b, .25, sg); pos.push(o.p.x, o.p.y, o.p.z); nor.push(o.n.x, 0, o.n.z); uv.push(a / LW, b / LH); }
         return face(pkg, name, K3.mesh(K3.geo(pos, nor, uv, S.idx), sf('litho', c, {lift: true}), {cast: false}), c, {
@@ -699,24 +728,27 @@ export function rounds(kit, {today, rand}) {
       label('back', bc, -1);
       reg(pkg, 'back', 'nutrition', nf);
       reg(pkg, 'back', 'upc', ub);
-      /* the ring under the cap, in the jug's own plastic (the neck itself is part of the jug's body) */
-      plain(pkg, 'neck', K3.mesh(K3.revolve(K3.fillet([[RN - .8, HN + 15], [RN + 3, HN + 15.8, .9], [RN + 3, HN + 17.8, .9], [RN - .8, HN + 18.6]]), {seg: 96}),
-        K3.surf('hdpe', {color: '#D8DEE5', mm: [2 * Math.PI * RN, 30]})));
-      /* the red screw cap (a 38 mm dairy cap, 43 mm across), with the ring that breaks off under it */
-      const capR = 21.5, capH = 11, capY = HN + 22;
-      part(pkg, 'cap', screwCap(capR, capY, capH, RED, {band: 3.2, ribs: 60, amp: .5, round: 2, lip: 3.4}));
-      /* the date: hi-res inkjet on the front of the neck, right under the ring: the date 4.2 mm, the dairy's code 3 mm */
-      const Rd = RN + .1, DW = 24, DH = 13.6, dc = cv(DW, DH, 50), dx = dc.getContext('2d'), dyc = HN + 1.2 + DH / 2, dthL = DW / Rd, dth0 = -dthL / 2;
+      /* the neck's ring under the cap, in the jug's own plastic: a collar with the lugs that the cap's ring catches on */
+      const lug = th => sm((Math.cos(12 * th) + .55) / .9), lugY = y => sm((y - 229.6) / 1.1) * sm((235.9 - y) / 1.1);
+      plain(pkg, 'neck', K3.mesh(K3.revolve(K3.fillet([[RN - 1.5, 228.6], [RN + .9, 229.2, .9], [RN + .9, 230.6], [RN + .9, 231.6], [RN + .9, 232.6], [RN + .9, 233.6], [RN + .9, 234.6], [RN + .9, 236.3, .9], [RN - 2.4, 236.9]], 5),
+        {seg: 192, wave: (th, r, y) => .9 * lug(th) * lugY(y), shade: (th, r, y) => 1 - .3 * lugY(y) * (1 - lug(th))}), K3.surf('hdpe', {color: '#DCE1E4', mm: [2 * Math.PI * RN, 30], ao: true})));
+      /* the red screw cap (a 38 mm dairy cap, 16 mm tall), with the ring that breaks off under it */
+      const capR = 19, capH = 11.3, capY = 241.8;
+      part(pkg, 'cap', screwCap(capR, capY, capH, RED, {band: 4.4, ribs: 72, amp: .4, round: 2.6, lip: 3}));
+      /* the date: hi-res inkjet on the front of the dome, near the cap (the side is flat there and leans back): the date
+         4.2 mm, the dairy's code 3 mm. at(a, b) = a mm across from the print's middle, b mm down the side from its top edge */
+      const DW = 24, DH = 13.6, DX = 5.3, DT = 212.3, dc = cv(DW, DH, 50), dx = dc.getContext('2d'), sl = Math.atan(J.K), cs = Math.cos(sl), sn = Math.sin(sl);
       kit.printOn(pkg, dx, dc, 'print', ink([[{t: dateText, k: 'date'}]], 1.2, .9, 4.2, 4.2));
       const cb = dots(dx, dc, code, 1.2, 8.2, 3, '#1E2433').box(0, code.length);
       chunk(pkg, 'print', 'code', cb, {t: code, line: 1, h: 3, tag: "dairy's code", coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`});
-      const decal = new THREE.Mesh(new THREE.CylinderGeometry(MM(Rd), MM(Rd), MM(DH), 40, 1, true, dth0, dthL), decalMat(dc)); decal.position.y = MM(dyc);
-      face(pkg, 'print', decal, dc, {map: cylMap(dc, Rd, DH, dyc, dth0, dthL), frame: cylFrame(dc, dth0, dthL), curved: true});
+      const at = (a, b) => { const y = DT - b * cs; return V(MM(DX + a), MM(y + .12 * sn), MM(J.B1 - (y - J.DH1) * J.K + .12 * cs)); };
+      const dq = [at(-DW / 2, DH), at(DW / 2, DH), at(DW / 2, 0), at(-DW / 2, 0)];
+      face(pkg, 'print', quadMesh(dq, decalMat(dc)), dc, {map: (px, py) => onQ(dq, dc, px, py), frame: qFrame(dq), curved: false});
       inkParts(pkg, parts);
-      return finish(pkg, {cy: MM((capY + capH) / 2), el: .3, noun: 'milk', spot: 'print', where: 'on the neck'});
+      return finish(pkg, {cy: MM((capY + capH) / 2), el: .3, noun: 'milk', spot: 'print', where: 'near the cap'});
     };
     R4.push({name: 'Milk', newThing: 'no clue words at all', build, kw: null, clue: 'the <b>month</b>', dateText, date: iso(d), until: iso(d), say: md(m, day),
-      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-41, 199, 0], [41, 253, 26], null, .1, 0),
+      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-34, 193.5, 22], [40, 250.5, 48], null, .42, 0),
       choices: choices({t: md(m, day), coach: `<b>${code}</b> is the dairy's code.`}, [
         {t: md(5, d1), coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`, src: 'code'},
         {t: md(m, 6), coach: `<b>06</b> is part of the <b>dairy's code</b>.`, src: 'code'},
