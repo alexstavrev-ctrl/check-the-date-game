@@ -27,9 +27,9 @@
 
    Packages are drawn in code like real store packages (made-up brands, no real logos): flat printed colours, the brand
    and product name in Baloo 2, small print in Nunito, a real UPC-A bar code, US Nutrition Facts, the maker's address and a
-   store price sticker, with one Canva picture per package (art below; find.js loads them from find/art/ before any build).
+   store price sticker, with Canva pictures (art below; find.js loads them from find/art/ before any build).
    No printed word other than the round's own clue words and distractors holds a month (MAR in MARKET, MAY in MAY CONTAIN),
-   BEST, USE or EXP, or anything that reads like a date. Sizes are real millimetres: 1 unit = 100 mm, origin at the bottom
+   BEST, USE or EXP, or anything that reads like a date (so no "No. 5" either: round 4 teaches that NO is November). Sizes are real millimetres: 1 unit = 100 mm, origin at the bottom
    centre, +Z front, +Y up. Every mesh carries userData.face. Prints use real letter heights (2.5 to 4.6 mm). */
 
 import * as K3 from './kit3d.js?v=1';   /* the same address find.js imports, so both share one kit */
@@ -42,12 +42,15 @@ const CA = {0:'JA',1:'FE',4:'MA',7:'AU',8:'SE',9:'OC',10:'NO',11:'DE'};
 const p2 = n => String(n).padStart(2,'0');
 const FIND = 'Find the date<br><b>to check.</b>';
 /* the package pictures (Canva, colored-pencil picture-book style, cut out to transparent webp; classroom-assets group
-   find-packages, ids find-pkg.<name>). trim = the solid part of the picture in its 600 px file. kit.art draws it. */
+   find-packages, ids find-pkg.<name>). trim = the solid part of the picture, in its own file's pixels. kit.art draws it.
+   The spaghetti box has three more than the others: strands (the pasta behind its window), plate (the serving picture)
+   and wheat. */
 export const art = {
   peanuts: {file: 'peanuts.webp', trim: [27, 49, 574, 252]},
   oranges: {file: 'oranges.webp', trim: [37, 50, 560, 248]},
   crackers: {file: 'crackers.webp', trim: [13, 72, 588, 224]},
   pasta: {file: 'pasta.webp', trim: [6, 75, 594, 218]},
+  strands: {file: 'strands.webp', trim: [0, 0, 900, 420]}, plate: {file: 'plate.webp', trim: [42, 34, 676, 676]}, wheat: {file: 'wheat.webp', trim: [38, 11, 563, 583]},
   'cow-jug': {file: 'cow-jug.webp', trim: [68, 14, 502, 291]}};   /* a picture that fails to load is skipped: the package draws a
    plain flat stand-in in its place */
 /* Nutrition Facts for kit.nfacts: {serv, size, cal, rows: [[name, amount, %, indent, bold]], vit: [[name, amount, %]]} */
@@ -69,62 +72,57 @@ const MILK_NF = {serv: '16 servings per container', size: '1 cup (240mL)', cal: 
   rows: [['Total Fat', '8g', '10%'], ['Saturated Fat', '5g', '25%', 1, false], ['Trans Fat', '0g', '', 1, false], ['Cholesterol', '35mg', '12%'], ['Sodium', '125mg', '5%'],
     ['Total Carbohydrate', '12g', '4%'], ['Total Sugars', '12g', '', 1, false], ['Protein', '8g', '']],
   vit: [['Vitamin D', '2.5mcg', '10%'], ['Calcium', '300mg', '25%'], ['Potassium', '380mg', '8%']]};
-/* ---------- the gallon jug's shape: one smooth solid (the body, the shoulder, the hand hole, the hollow handle that
-   crosses it and the foot), worked out once per page and kept. All in mm; an angle t round the jug puts a point at
-   x = r sin(t), z = r cos(t); the handle is on the back-right corner (t = 135 degrees). ---------- */
+/* ---------- the gallon jug's shape: one smooth solid, worked out once per page and kept. All in mm. It is a dairy's
+   blow-moulded gallon: a rounded square 150 mm wide that stands straight to the shoulder (126 mm up), then leans in on
+   all four sides, more and more round, to a short neck 41 mm across; a band for the labels lies 1.2 mm back; the left and
+   the right side each have a round dimple; and on the back-right corner is the handle: a hollow bar that goes straight
+   up from the shoulder, flush with the corner, and turns in to the neck. The corner behind it is scooped out for the
+   fingers, so you can see through the hand hole. s = how far out along that corner's line, w = across it. ---------- */
 let JUG = null;
 function jugShape() {
   if (JUG) return JUG;
-  const A = 75, PW = 5, HB = 166, HS = 212, RN = 21, cr = Math.PI * .75, RC = 50, SEG = 192, TAU = 2 * Math.PI;
-  /* the rounded square of the body, and the length round it (the label's u follows that length) */
-  const ex = t => A / Math.pow(Math.pow(Math.abs(Math.cos(t)), PW) + Math.pow(Math.abs(Math.sin(t)), PW), 1 / PW);
-  const NT = 4096, tab = new Float32Array(NT + 2); for (let i = 0; i <= NT + 1; i++) tab[i] = ex(-Math.PI + i / NT * TAU);
-  const rSq = t => { const f = (t + Math.PI) / TAU * NT, i = Math.floor(f); return tab[i] + (tab[i + 1] - tab[i]) * (f - i); };
-  const ths = [...Array(SEG + 1)].map((_, i) => -Math.PI + i / SEG * TAU), acc = [0];
-  for (let i = 1; i <= SEG; i++) { const a = ths[i - 1], b = ths[i]; acc.push(acc[i - 1] + Math.hypot(ex(b) * Math.sin(b) - ex(a) * Math.sin(a), ex(b) * Math.cos(b) - ex(a) * Math.cos(a))); }
-  const per = acc[SEG], uu = acc.map(a => a / per);
-  const uOf = t => { const f = (t + Math.PI) / TAU * SEG, i = Math.max(0, Math.min(SEG - 1, Math.floor(f))); return uu[i] + (uu[i + 1] - uu[i]) * (f - i); };
-  const tOf = u => { u = Math.max(0, Math.min(1, u)); let lo = 0, hi = SEG; while (hi - lo > 1) { const mi = (lo + hi) >> 1; if (uu[mi] <= u) lo = mi; else hi = mi; }
-    return ths[lo] + (ths[hi] - ths[lo]) * (u - uu[lo]) / ((uu[hi] - uu[lo]) || 1); };
-  const sst = (a, b, v) => { const t = v <= a ? 0 : v >= b ? 1 : (v - a) / (b - a); return t * t * (3 - 2 * t); };
-  /* from the square body to the round neck: slow at first, then straight, then slow again into the neck */
-  const p = .42, q = .86, m = 2 / (1 + q - p);
-  const bAt = y => { const s = (y - HB) / (HS - HB); return s <= 0 ? 0 : s >= 1 ? 1 : s < p ? m * s * s / (2 * p) : s < q ? m * p / 2 + m * (s - p) : 1 - m * (1 - s) * (1 - s) / (2 * (1 - q)); };
-  /* the label panel sits 1 mm back, between the foot and the shoulder */
-  const panel = y => sst(23, 29, y) * (1 - sst(153, 159, y));
-  const R0 = (t, y) => { const b = bAt(y); return (1 - b) * (rSq(t) - panel(y)) + b * RN; };
-  /* the hand hole: the corner behind the handle is pressed in to RC mm from the middle */
-  const scoop = (t, y, r0) => { let a = Math.abs(t - cr); if (a > Math.PI) a = TAU - a; const a2 = .42 + .14 * sst(140, 166, y); if (a >= a2 || y <= 104) return 0;
-    const wa = a <= .15 ? 1 : Math.pow(Math.cos((a - .15) / (a2 - .15) * Math.PI / 2), 2), d = r0 - RC; return wa * sst(104, 130, y) * (1 - sst(198, 210, y)) * (d + Math.sqrt(d * d + 25)) / 2; };
-  const rAt = (t, y) => { const r0 = R0(t, y); return r0 - scoop(t, y, r0); };
-  /* the handle: a hollow tube that runs just inside the corner's own line, from the middle of the jug up over the shoulder */
-  const E = y => R0(cr, y), RIN = 9, RR = 11, RT = 13, C = [];
-  for (let y = 92; y <= 207; y += 2) { const e = E(y), de = E(y + .5) - E(y - .5), l = Math.hypot(1, de); C.push([e - RIN / l, y + RIN * de / l]); }
-  const S0 = 14, S1 = 100, Y0 = 70, Y1 = 220, GW = S1 - S0 + 1, GH = Y1 - Y0 + 1, dt = new Float32Array(GW * GH);
-  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const s = S0 + i, y = Y0 + j; let best = 1e9;
-    for (let n = 0; n < C.length - 1; n++) { const ax = C[n][0], ay = C[n][1], bx = C[n + 1][0] - ax, by = C[n + 1][1] - ay, tt = Math.max(0, Math.min(1, ((s - ax) * bx + (y - ay) * by) / (bx * bx + by * by))), d = Math.hypot(s - ax - bx * tt, y - ay - by * tt); if (d < best) best = d; }
-    dt[j * GW + i] = best; }
-  const d2 = (s, y) => { const fi = s - S0, fj = y - Y0; if (fi < 0 || fj < 0 || fi >= GW - 1 || fj >= GH - 1) return 99; const i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, o = j * GW + i;
-    return (dt[o] * (1 - a) + dt[o + 1] * a) * (1 - b) + (dt[o + GW] * (1 - a) + dt[o + GW + 1] * a) * b; };
-  const sn = Math.sin(cr), cs = Math.cos(cr);
+  const A = 75, CR = 28, REC = 1.2, YB = 126, YN = 214, RN = 20.5, HN = 221, TOP = 246, SQ = Math.SQRT1_2, TAU = 2 * Math.PI;
+  const cl = (v, a, b) => v < a ? a : v > b ? b : v, sst = (a, b, v) => { const t = cl((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k / 4; };
   const smax = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.max(a, b) + h * h * k / 4; };
+  /* the outline: half the jug's width at every height (a table, two steps per mm) */
+  const OUT = K3.fillet([[A, -8], [A, YB, 26], [54, 176, 60], [RN, YN, 11], [RN, TOP + 8]], 14), Y0 = -8, NA = (TOP + 16) * 2, tab = new Float32Array(NA + 2);
+  for (let i = 0, j = 0; i <= NA + 1; i++) { const y = Y0 + i / 2; while (j < OUT.length - 2 && OUT[j + 1][1] <= y) j++; const p = OUT[j], q = OUT[j + 1]; tab[i] = p[0] + (q[0] - p[0]) * cl((y - p[1]) / ((q[1] - p[1]) || 1), 0, 1); }
+  const aAt = y => { const f = cl((y - Y0) * 2, 0, NA), i = Math.floor(f); return tab[i] + (tab[i + 1] - tab[i]) * (f - i); };
+  /* how round the jug is across: a square with 28 mm corners up to the shoulder, a circle at the neck */
+  const rat = y => { const t = cl((y - YB) / (YN - YB), 0, 1); return CR / A + (1 - CR / A) * t * Math.sqrt(t); };
+  const sec = (x, z, a, c) => { const qx = Math.abs(x) - (a - c), qz = Math.abs(z) - (a - c); return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - c; };
+  const band = y => sst(18, 26, y) * (1 - sst(114, 122, y));      /* soft edges: the steps are wider than the mesh is fine */
+  /* the handle's middle line (s, y), and a table of the distance to it */
+  const HP = K3.fillet([[83.5, 100], [83.5, 199, 30], [18, 206]], 16), RR = 10, RT = 12.5;
+  const S0 = 2, S1 = 100, H0 = 84, H1 = 226, GW = S1 - S0 + 1, GH = H1 - H0 + 1, dt = new Float32Array(GW * GH);
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) { const s = S0 + i, y = H0 + j; let best = 1e9;
+    for (let n = 0; n < HP.length - 1; n++) { const ax = HP[n][0], ay = HP[n][1], bx = HP[n + 1][0] - ax, by = HP[n + 1][1] - ay, tt = cl(((s - ax) * bx + (y - ay) * by) / (bx * bx + by * by || 1), 0, 1), d = Math.hypot(s - ax - bx * tt, y - ay - by * tt); if (d < best) best = d; }
+    dt[j * GW + i] = best; }
+  const dH = (s, y) => { const fi = s - S0, fj = y - H0; if (fi < 0 || fj < 0 || fi >= GW - 1 || fj >= GH - 1) return 99; const i = Math.floor(fi), j = Math.floor(fj), a = fi - i, b = fj - j, o = j * GW + i;
+    return (dt[o] * (1 - a) + dt[o + 1] * a) * (1 - b) + (dt[o + GW] * (1 - a) + dt[o + GW + 1] * a) * b; };
   /* the whole jug as one field: below zero inside the plastic's outer skin, above zero outside */
-  const F = (x, y, z) => { const rs = Math.hypot(x, z), t = Math.atan2(x, z), r0 = R0(t, y); let f = rs - (r0 - scoop(t, y, r0));
-    const s = x * sn + z * cs;
-    if (s > S0 && y > Y0 && y < Y1) { const w = x * cs - z * sn; if (w > -30 && w < 30) { const d = d2(s, y), rho = Math.hypot(d / RR, w / RT); if (rho < 3) f = smin(f, smax((rho - 1) * RR, rs - r0, 5), 8); } }
-    const yb = 3.2 * (1 - sst(.5, .82, rs / rSq(t)));      /* the foot: a round heel, and a base pushed up a little in the middle */
-    f = smax(f, yb - y, 9);
-    return smax(f, y - HS - 18, 1.2); };                    /* the neck goes on up, into its ring */
-  const N = K3.nets(F, [-79, -2.5, -79, 79, 232.5, 79], 2.5, {shade: .6});
-  /* to scene units, with the label's u, v; a triangle that crosses the seam at the back gets its own corners with u past 1 */
+  const F = (x, y, z) => {
+    const a = aAt(y), f0 = sec(x, z, a, a * rat(y)); let f = f0 + REC * band(y);
+    if (y > 36 && y < 106 && (x > 40 || x < -40)) { const rho = Math.hypot(y - 71, z) / 33; if (rho < 1) f += 4.2 * (1 - sst(.6, 1, rho)); }      /* the two dimples */
+    if (y > 108) { const s = (x - z) * SQ, w = (x + z) * SQ;
+      if (s > 6) {
+        f = smax(f, (1 - Math.hypot((s - 86) / 38, (y - 163) / 36, w / 36)) * 36, 10);                 /* the scoop behind the handle */
+        if (w > -40 && w < 40) { const rho = Math.hypot(dH(s, y) / RR, w / RT); if (rho < 3) f = smin(f, (rho - 1) * RR, 9); }                   /* the handle */
+        f = Math.max(f, sec(x, z, A, CR) + REC * band(y)); } }                                         /* nothing stands out past the corner's own line */
+    f = smax(f, 3.4 * sst(12, 40, -f0) - y, 9);            /* the foot: a round heel, and a base pushed up a little in the middle */
+    return smax(f, y - TOP, 1.2); };                        /* the neck goes on up, into its ring and cap */
+  const N = K3.nets(F, [-79, -2.5, -79, 79, 250, 79], 2.5, {shade: .6});
+  /* to scene units, with a u, v for the plastic's grain (u round the jug, v up); a triangle that crosses the seam at the
+     back gets its own corners with u past 1 */
   const pos = Array.from(N.pos, v => v / 100), nor = Array.from(N.nor), uv = [], col = [], idx = N.idx.slice(), dup = new Map();
-  for (let i = 0; i < N.n; i++) { uv.push(uOf(Math.atan2(N.pos[i * 3], N.pos[i * 3 + 2])), N.pos[i * 3 + 1] / HS); const c = N.shade[i]; col.push(c, c, c); }
+  /* the milk stands to the foot of the neck: above it the plastic has no white behind it and looks a little grey */
+  for (let i = 0; i < N.n; i++) { const y = N.pos[i * 3 + 1], c = N.shade[i], air = sst(204, 207.5, y); uv.push(Math.atan2(N.pos[i * 3], N.pos[i * 3 + 2]) / TAU + .5, y / TOP); col.push(c * (1 - .13 * air), c * (1 - .105 * air), c * (1 - .075 * air)); }
   for (let f = 0; f < idx.length; f += 3) { const ua = uv[idx[f] * 2], ub = uv[idx[f + 1] * 2], uc = uv[idx[f + 2] * 2]; if (Math.max(ua, ub, uc) - Math.min(ua, ub, uc) < .5) continue;
     for (let j = 0; j < 3; j++) { const v = idx[f + j]; if (uv[v * 2] >= .5) continue; let w = dup.get(v);
       if (w === undefined) { w = pos.length / 3; dup.set(v, w); pos.push(pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]); nor.push(nor[v * 3], nor[v * 3 + 1], nor[v * 3 + 2]); uv.push(uv[v * 2] + 1, uv[v * 2 + 1]); col.push(col[v * 3], col[v * 3 + 1], col[v * 3 + 2]); }
       idx[f + j] = w; } }
-  return JUG = {HS, RN, per, rAt, tOf, pos: new Float32Array(pos), nor: new Float32Array(nor), uv: new Float32Array(uv), col: new Float32Array(col), idx};
+  return JUG = {A, CR, REC, HN, RN, TOP, per: 8 * (A - CR) + TAU * CR, pos: new Float32Array(pos), nor: new Float32Array(nor), uv: new Float32Array(uv), col: new Float32Array(col), idx};
 }
 /* round.close: the close look's framing, tested with the v3 layout. pts are points in mm, group-local (origin at the bottom
    centre); frame them all in the free area, with the package at rx, ry (YXZ). Most are the 8 corners of a box round the
@@ -264,7 +262,8 @@ export function rounds(kit, {today, rand}) {
   const R4 = [];
 
   /* ======================================================================================================
-     1. Peanut butter jar, 16 oz: clear plastic, 85 mm across, 105 mm tall, red lid 21 mm. Made like a store jar: a wrap label with
+     1. Peanut butter jar, 16 oz: clear plastic, 85 mm across, 128 mm tall with its lid; the red lid is 74 mm across and 16 mm
+        tall, narrower than the jar, on a round shoulder (a real 16 oz jar's sizes). Made like a store jar: a wrap label with
         the brand in a red band, CREAMY on a gold ribbon, PEANUT BUTTER, a peanuts picture, the weight in a blue band;
         on the back Nutrition Facts, ingredients, the maker's address and the recycling mark.
         The date is black inkjet on the back label, right under the bar code, in 2.5 mm letters. New: a time that looks like a date.
@@ -277,8 +276,8 @@ export function rounds(kit, {today, rand}) {
     const build = () => {
       const pkg = kit.newPkg('peanut butter'), RED = '#D3312B', BLUE = '#1D4E9E', GOLD = '#F2B630', BROWN = '#6B2E0E', CREAM = '#FFF8EA';
       /* the jar is clear plastic, with the peanut butter inside it: a round heel, a base pushed up a little, a shoulder under the lid */
-      plain(pkg, 'body', K3.mesh(K3.revolve(K3.fillet([[0, 1.4], [28, 1.4, 4], [32.5, 0, 3], [42.5, 0, 4.6], [42.5, 94, 7], [37.4, 101.6, 3], [37.4, 106]]), {seg: 128}), K3.clear({base: .025}), {shadow: false, order: 1}));
-      const pb = K3.mesh(K3.revolve(K3.fillet([[0, 2.8], [27.4, 2.8, 4], [32, 1.3, 3], [41.2, 1.3, 3.6], [41.2, 94.2, 6.2], [36.2, 101.4, 2.6], [36.2, 104.6], [36.2, 104.6], [0, 104.6]]), {seg: 96}), K3.surf('food', {color: '#C68A4E'}));
+      plain(pkg, 'body', K3.mesh(K3.revolve(K3.fillet([[0, 1.4], [28, 1.4, 4], [32.5, 0, 3], [42.5, 0, 4.6], [42.5, 104, 8], [34.2, 112.4, 3], [34.2, 118]]), {seg: 128}), K3.clear({base: .025}), {shadow: false, order: 1}));
+      const pb = K3.mesh(K3.revolve(K3.fillet([[0, 2.8], [27.4, 2.8, 4], [32, 1.3, 3], [41.2, 1.3, 3.6], [41.2, 104.2, 7.2], [33, 112.2, 2.6], [33, 116.6], [33, 116.6], [0, 116.6]]), {seg: 96}), K3.surf('food', {color: '#C68A4E'}));
       pb.userData.face = ''; pkg.group.add(pb);
       /* the paper label all the way round: u = .25 faces the front (+Z), u = .75 the back */
       const Rl = 42.85, LH = 76, LY = 12, circ = 2 * Math.PI * Rl, th0 = -Math.PI / 2;
@@ -322,10 +321,10 @@ export function rounds(kit, {today, rand}) {
       const decal = new THREE.Mesh(new THREE.CylinderGeometry(MM(Rd), MM(Rd), MM(DH), 48, 1, true, dth0, dthL), decalMat(dc)); decal.position.y = MM(dyc);
       face(pkg, 'print', decal, dc, {map: cylMap(dc, Rd, DH, dyc, dth0, dthL), frame: cylFrame(dc, dth0, dthL), curved: true});
       /* the red lid: a ribbed skirt, a round shoulder, the brand printed flat on top */
-      const lidR = 43.7, lidH = 21, lidY = 102.5, tc = cv(2 * lidR, 2 * lidR, 6), tx = flat(tc, RED);
+      const lidR = 37, lidH = 16, lidY = 112.5, tc = cv(2 * lidR, 2 * lidR, 6), tx = flat(tc, RED);
       tx.strokeStyle = 'rgba(255,255,255,.35)'; tx.lineWidth = tc.k * .6; tx.beginPath(); tx.arc(tc.width / 2, tc.height / 2, tc.width * .42, 0, 7); tx.stroke();
-      pt(tx, tc, 'Sunny Acres', lidR, lidR, 10, '#FFFFFF', {w: 800});
-      part(pkg, 'lid', screwCap(lidR, lidY, lidH, RED, {top: tc, ribs: 100, amp: .5, round: 2.6, lip: 7.4}));
+      pt(tx, tc, 'Sunny Acres', lidR, lidR, 8.6, '#FFFFFF', {w: 800});
+      part(pkg, 'lid', screwCap(lidR, lidY, lidH, RED, {top: tc, ribs: 96, amp: .45, round: 2.4, lip: 2.8}));
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM((lidY + lidH) / 2), el: .22, noun: 'peanut butter', spot: 'print', where: 'on the back'});
     };
@@ -544,8 +543,12 @@ export function rounds(kit, {today, rand}) {
   }
 
   /* ======================================================================================================
-     5. Spaghetti, 1 lb: 68 x 262 x 38 mm, like a store box: blue, the brand in a red oval, Spaghetti and a window that
-        shows the pasta, all reading up the long side; Nutrition Facts, cooking steps, ingredients and the bar code on the back.
+     5. Spaghetti, 1 lb: 68 x 262 x 38 mm, printed like a store box, everything reading up the long side: a deep blue box,
+        a plate of spaghetti in tomato sauce at the foot, the brand in a red oval, SPAGHETTI in white capitals over a green,
+        white and red stripe, the cooking time in a gold ring, and a rounded window with the real strands lying behind its film
+        (14 round strands, coloured by the strands picture). The back also reads up the box: how to cook it in four steps,
+        Nutrition Facts, ingredients, the maker, the bar code and a wheat picture on a cream panel. The narrow sides carry
+        the name and the brand. No "No. 5" on this box: round 4 teaches that NO is November.
         The date is on the top end flap in a white code box: BEST BY MON YYYY (good until the end of that month) and a lot
         code and time. New: month and year only, no day.
      ====================================================================================================== */
@@ -553,42 +556,79 @@ export function rounds(kit, {today, rand}) {
     const k0 = t0.getMonth() + (gone.has(4) ? -ri(1, 8) : ri(10, 24)), Y = t0.getFullYear() + Math.floor(k0 / 12), m = ((k0 % 12) + 12) % 12, dateText = `${MON[m]} ${Y}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'year', i: 4, n: 4}];
     const code = 'L' + ri(1000, 9899) + 'ABCDEFGH'[ri(0, 7)], time = time24();
     const build = () => {
-      const W = 68, H = 262, D = 38, WIN = [33, 80, 61, 254, 8], pkg = kit.newPkg('spaghetti'), put = boxOf(pkg, W, H, D, 1.2, {hole: {front: WIN}}), C = {}, BLUE = '#1F4FA8', RED = '#D3312B', CREAM = '#FFF4DE';
+      const W = 68, H = 262, D = 38, WIN = [33, 80, 61, 254, 8], pkg = kit.newPkg('spaghetti'), put = boxOf(pkg, W, H, D, 1.2, {hole: {front: WIN}}), C = {};
+      const BLUE = '#1B459E', RED = '#D3312B', CREAM = '#FFF4DE', GOLD = '#F6C445', GREEN = '#1E9A4B', INK = '#2a2a33';
       const fc = (n, fw, fh, draw, k) => { const c = cv(fw, fh, k || 7), x = flat(c, BLUE); draw(x, c); C[n] = c; put(n, c); return c; };
-      /* a tall face whose print reads up the long side: drawn on its side, then turned. draw returns [kind, box, coach] to register */
+      /* a tall face whose print reads up the long side, as on a real spaghetti box: drawn on its side (x = mm up the box,
+         y = mm across it), then turned. draw returns [kind, box, coach] to register */
       const up = (n, fw, fh, draw) => { const L = cv(fh, fw, 7), lx = flat(L, BLUE), regs = draw(lx, L) || [];
         const c = fc(n, fw, fh, x => { x.save(); x.translate(0, fh * x.canvas.k); x.rotate(-Math.PI / 2); x.drawImage(L, 0, 0); x.restore(); });
         for (const [kind, b, coach] of regs) reg(pkg, n, kind, [b[1], c.height - b[2], b[3], c.height - b[0]], coach); };
-      up('front', W, H, (x, c) => {
-        rr(x, c, 8, 7, 64, 24, 12, RED); pt(x, c, 'Casa Bella', 40, 19.2, 10, '#FFFFFF', {w: 800, max: 56});
-        pt(x, c, 'ENRICHED MACARONI PRODUCT', 40, 36.4, 2.6, '#FFFFFF', {w: 900, n: true, max: 60});
-        const wt = pt(x, c, 'NET WT 16 OZ (1 LB) 454g', 40, 41.6, 2.9, '#FFFFFF', {w: 900, n: true, max: 60});
-        const nm = pt(x, c, 'Spaghetti', 80, 18.6, 21, '#FFFFFF', {w: 800, a: 'left', max: 170});
-        rr(x, c, 80, 33, 174, 28, 8, CREAM);
-        x.save(); x.beginPath(); x.roundRect(80 * c.k, 33 * c.k, 174 * c.k, 28 * c.k, 8 * c.k); x.clip();
-        fit(x, c, 'pasta', 167, 47, 170, 34, () => { x.strokeStyle = '#E3B85B'; x.lineWidth = c.k * .9; for (let i = 0; i < 24; i++) { const y = (38 + i * .8) * c.k; x.beginPath(); x.moveTo(90 * c.k, y); x.lineTo(244 * c.k, y + c.k * (i % 3 - 1)); x.stroke(); } });
+      /* the brand: a red oval with a white rim (middle and half sizes in mm) */
+      const oval = (x, c, cx, cy, rx, ry, s) => { const k = c.k; x.save(); x.fillStyle = '#FFFFFF'; x.beginPath(); x.ellipse(cx * k, cy * k, rx * k, ry * k, 0, 0, 7); x.fill();
+        x.fillStyle = RED; x.beginPath(); x.ellipse(cx * k, cy * k, (rx - 1.1) * k, (ry - 1.1) * k, 0, 0, 7); x.fill(); x.restore();
+        return pt(x, c, 'Casa Bella', cx, cy + .4, s, '#FFFFFF', {w: 800, max: (rx - 3.4) * 2}); };
+      /* a soft lighter glow in the blue, as on a printed box */
+      const glow = (x, c, cx, cy, r) => { const k = c.k, g = x.createRadialGradient(cx * k, cy * k, 0, cx * k, cy * k, r * k); g.addColorStop(0, 'rgba(72,132,228,.6)'); g.addColorStop(1, 'rgba(72,132,228,0)');
+        x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); };
+      const name = (x, c, cx, cy, s, o) => pt(x, c, 'SPAGHETTI', cx, cy, s, '#FFFFFF', Object.assign({w: 900, n: true, ls: .05}, o || {}));
+      const flag = (x, c, x0, y0, w, h) => { const k = c.k; [GREEN, '#FFFFFF', RED].forEach((col, i) => { x.fillStyle = col; x.fillRect((x0 + i * w / 3) * k, y0 * k, w / 3 * k + 1, h * k); }); };
+      up('front', W, H, (x, c) => { const k = c.k;
+        glow(x, c, 176, 16, 95);
+        /* a plate of spaghetti, running off the bottom end of the box */
+        fit(x, c, 'plate', 30, 41, 76, 76, () => { for (const [r, col] of [[37, '#FFFFFF'], [26, '#F3D36B'], [13, RED]]) { x.fillStyle = col; x.beginPath(); x.arc(30 * k, 41 * k, r * k, 0, 7); x.fill(); } });
+        oval(x, c, 99, 17, 24.5, 11.5, 8.8);
+        const nm = name(x, c, 177, 13.2, 14.6, {max: 96});
+        flag(x, c, 131.5, 22.3, 91, 1.3);
+        pt(x, c, 'ENRICHED MACARONI PRODUCT', 177, 27.5, 2.6, '#FFFFFF', {w: 900, n: true, ls: .1, max: 90});
+        /* how long it cooks, in a gold ring with a little clock */
+        x.strokeStyle = GOLD; x.lineWidth = .9 * k; x.beginPath(); x.arc(242.5 * k, 16.6 * k, 11.6 * k, 0, 7); x.stroke();
+        x.lineWidth = .5 * k; x.lineCap = 'round'; x.beginPath(); x.arc(242.5 * k, 9.6 * k, 2.1 * k, 0, 7); x.stroke(); x.beginPath(); x.moveTo(242.5 * k, 8.3 * k); x.lineTo(242.5 * k, 9.6 * k); x.lineTo(243.5 * k, 10.2 * k); x.stroke();
+        pt(x, c, '10', 242.5, 17.6, 9.6, GOLD, {w: 800}); pt(x, c, 'MIN', 242.5, 24.2, 3, GOLD, {w: 900, n: true, ls: .1});
+        /* the window: a white rim, and in it the spaghetti itself, strand for strand (the box's real strands take this drawing) */
+        rr(x, c, 78.8, 31.8, 176.4, 30.4, 9.2, '#FFFFFF');
+        x.save(); x.beginPath(); x.roundRect(80 * k, 33 * k, 174 * k, 28 * k, 8 * k); x.clip(); x.fillStyle = '#E9BE62'; x.fillRect(80 * k, 33 * k, 174 * k, 28 * k);
+        for (let i = 0; i < 4; i++) { const cx = 78 + 30 + i * 60; x.save(); if (i % 2) { x.translate(2 * cx * k, 0); x.scale(-1, 1); }
+          if (!(kit.art && kit.art(x, c, 'strands', cx, 47, 60)) && !i) { x.restore(); x.strokeStyle = '#B98A2E'; x.lineWidth = k * .3; for (let s = 1; s < 14; s++) { x.beginPath(); x.moveTo(80 * k, (33 + s * 2) * k); x.lineTo(254 * k, (33 + s * 2) * k); x.stroke(); } break; }
+          x.restore(); }
         x.restore();
-        const pr = priceDot(x, c, 40, 55, 7.2, '$1.79');
+        const wt = pt(x, c, 'NET WT 16 OZ (1 LB) 454g', 167, 65, 2.7, '#FFFFFF', {w: 900, n: true});
+        const pr = priceDot(x, c, 70, 60.2, 6.6, '$1.79');
         return [['name', nm], ['weight', wt], ['price', pr]]; });
-      let nf, ub;
-      fc('back', W, H, (x, c) => { const k = c.k; rr(x, c, 4, 8, W - 8, H - 16, 4, CREAM);
-        nf = nfacts(x, c, 7, 12, 54, PASTA_NF, .8);
-        pt(x, c, 'How to cook', 8, nf[3] / k + 6, 4.6, BLUE, {w: 800, a: 'left'});
-        const st = para(x, c, [['1. ', true], ['Boil 4 quarts of water. ', false], ['2. ', true], ['Add the pasta. ', false], ['3. ', true], ['Cook 10 minutes, stirring now and then. ', false], ['4. ', true], ['Drain and serve.', false]], 8, nf[3] / k + 10, 52, 2.7, '#2a2a33');
-        const ing = para(x, c, [['INGREDIENTS: ', true], ['Semolina (wheat), durum wheat flour, niacin, iron, thiamine, riboflavin, folic acid. ', false], ['CONTAINS: WHEAT.', true]], 8, st[3] / k + 4, 52, 2.4, '#2a2a33');
-        para(x, c, [['Casa Bella Pasta Co.', true], [' Saint Louis, MO 63101', false]], 8, ing[3] / k + 3, 52, 2.3, '#2a2a33');
-        ub = upc(x, c, 14, 222, 40, 20, '07654321098'); });
-      reg(pkg, 'back', 'nutrition', nf);
-      reg(pkg, 'back', 'upc', ub);
-      up('right', D, H, (x, c) => { pt(x, c, 'Spaghetti', H / 2, D / 2, 14, '#FFFFFF', {w: 800}); });
-      up('left', D, H, (x, c) => { rr(x, c, 70, 9, 122, 20, 10, RED); pt(x, c, 'Casa Bella', H / 2, D / 2, 10, '#FFFFFF', {w: 800}); });
-      fc('bottom', W, D, () => {});
+      up('back', W, H, (x, c) => { const k = c.k; rr(x, c, 4, 4, 254, 60, 3.5, CREAM);
+        /* how to cook it: four steps */
+        pt(x, c, 'How to cook', 9, 11.4, 5.8, BLUE, {w: 800, a: 'left'});
+        [['Boil 4 quarts of water.', 'Add a little salt.'], ['Add the pasta.', 'Stir it now and then.'], ['Cook 10 minutes.', ''], ['Drain and serve.', '']].forEach(([a, b], i) => { const y = 20.4 + i * 7.6;
+          x.fillStyle = RED; x.beginPath(); x.arc(12 * k, y * k, 2.7 * k, 0, 7); x.fill(); pt(x, c, String(i + 1), 12, y + .15, 3.5, '#FFFFFF', {w: 800});
+          pt(x, c, a, 17, y - (b ? 1.4 : 0), 2.9, INK, {w: 900, n: true, a: 'left'}); if (b) pt(x, c, b, 17, y + 1.9, 2.5, INK, {w: 700, n: true, a: 'left'}); });
+        fit(x, c, 'pasta', 62, 52.6, 50, 15);
+        /* Nutrition Facts */
+        const nf = nfacts(x, c, 92, 5.6, 47, PASTA_NF, .69);
+        /* what is in it, who made it, the bar code */
+        const ing = para(x, c, [['INGREDIENTS: ', true], ['Semolina (wheat), durum wheat flour, niacin, iron, thiamine, riboflavin, folic acid. ', false], ['CONTAINS: WHEAT.', true]], 145, 7.4, 68, 2.5, INK);
+        para(x, c, [['Casa Bella Pasta Co.', true], [' Saint Louis, MO 63101', false]], 145, ing[3] / k + 2.4, 68, 2.4, INK);
+        fit(x, c, 'wheat', 236, 21, 30, 30);
+        pt(x, c, 'MADE WITH', 236, 40.2, 2.5, BLUE, {w: 900, n: true, ls: .08}); pt(x, c, 'DURUM WHEAT', 236, 44, 2.9, BLUE, {w: 900, n: true, ls: .04});
+        const ub = upc(x, c, 150, 38.5, 40, 18, '07654321098');
+        recycle(x, c, 205, 47.5, 3.6, BLUE); pt(x, c, 'PLEASE', 205, 54.2, 2.1, BLUE, {w: 900, n: true}); pt(x, c, 'RECYCLE', 205, 57, 2.1, BLUE, {w: 900, n: true});
+        return [['nutrition', nf], ['upc', ub]]; });
+      up('right', D, H, (x, c) => { glow(x, c, H / 2, D / 2, 90); fit(x, c, 'wheat', 40, D / 2, 30, 31); name(x, c, 138, 15.6, 13.4); flag(x, c, 100, 24.2, 76, 1.2);
+        pt(x, c, 'ENRICHED MACARONI PRODUCT', 138, 29.6, 2.6, '#FFFFFF', {w: 900, n: true, ls: .1}); x.save(); x.translate(2 * 236 * c.k, 0); x.scale(-1, 1); fit(x, c, 'wheat', 236, D / 2, 30, 31); x.restore(); });
+      up('left', D, H, (x, c) => { glow(x, c, H / 2, D / 2, 90); oval(x, c, 58, D / 2, 30, 13, 10.4); fit(x, c, 'pasta', 170, D / 2, 130, 26); });
+      fc('bottom', W, D, (x, c) => { oval(x, c, W / 2, 14.4, 21, 9.4, 7.2); name(x, c, W / 2, 29.6, 5.4); });
       const tc = fc('top', W, D, (x, c) => { rr(x, c, 5, 6, W - 10, D - 12, 1.6, '#FFFFFF'); }, 48);
       kit.printOn(pkg, tc.getContext('2d'), tc, 'top', ink([
         [{t: 'BEST BY', k: 'words'}, {t: dateText, k: 'date'}],
         [{t: code, k: 'code', coach: isCode(code)}, {t: time, k: 'time', coach: isTime(time)}]], 8, 10.6, 3.1, 8.4));
       /* the window is a real one: the pasta lies inside the box, behind clear film (a tap on it still counts as the front) */
       pocket(pkg, W, H, D, WIN, 2.4, pkg.faces.front.mesh);
+      /* and the pasta is real too: 14 round strands side by side, 2 mm each, just over the pocket's floor. Each takes its
+         colour from the front's drawing, where the Canva strands lie strand for strand */
+      { const [a0, b0, a1, b1] = WIN, n = 14, pw = (a1 - a0) / n, M = 6, hm = 1.2, R = pw / 2 / Math.sin(hm), zf = D / 2 - 2.4 + .08, pos = [], nor = [], uv = [], idx = [];
+        for (let i = 0; i < n; i++) for (let j = 0; j <= M; j++) { const ph = (j / M * 2 - 1) * hm, a = a0 + (i + .5) * pw + R * Math.sin(ph), z = zf + R * (Math.cos(ph) - Math.cos(hm));
+          for (const b of [b0, b1]) { pos.push(MM(a - W / 2), MM(b), MM(z)); nor.push(Math.sin(ph), 0, Math.cos(ph)); uv.push(a / W, b / H); } }
+        for (let i = 0; i < n; i++) for (let j = 0; j < M; j++) { const q = (i * (M + 1) + j) * 2; idx.push(q, q + 2, q + 3, q, q + 3, q + 1); }
+        const sp = K3.mesh(K3.geo(pos, nor, uv, idx), K3.surf('food', {map: pkg.faces.front.mesh.material.map, rough: .5}), {cast: false}); sp.userData.face = 'front'; pkg.group.add(sp); }
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM(H) / 2, el: .22, noun: 'spaghetti', spot: 'top', where: 'on the top end'});
     };
@@ -601,9 +641,11 @@ export function rounds(kit, {today, rand}) {
   }
 
   /* ======================================================================================================
-     6. Gallon of whole milk from a California dairy: rounded-square jug 150 x 150 mm, red cap, handle at the back-right
-        corner. Like a store gallon: the brand, a red VITAMIN D / WHOLE MILK band, a cow picture, 1 GALLON on the front;
-        Nutrition Facts and the bar code on the left side; ingredients, the dairy and the recycling mark on the right.
+     6. Gallon of whole milk from a California dairy: the jug of jugShape() above (150 x 150 mm, 254 mm tall with its cap),
+        white plastic with the milk showing a little whiter below the neck, a small red screw cap (43 mm) over the neck's
+        ring, the handle at the back-right corner. Two paper labels lie in the label band and wrap round its corners:
+        on the front the brand, a red VITAMIN D / WHOLE MILK band, a cow picture, the price and 1 GALLON; on the back
+        Nutrition Facts, KEEP REFRIGERATED, ingredients, the dairy, the bar code and the recycling mark.
         The date is inkjet on the neck under the cap, with no clue words, over the dairy's code (06 = California).
         New: no clue words at all.
      ====================================================================================================== */
@@ -614,57 +656,57 @@ export function rounds(kit, {today, rand}) {
     let d2 = ri(1, 9); while ((d1 - 1 === m && d2 === day) || d1 - 1 === 5 && d2 === d1) d2 = ri(1, 9);
     const code = `06-${d1}${d2}${ri(10, 99)}`;
     const build = () => {
-      const pkg = kit.newPkg('milk'), RED = '#D3312B', NAVY = '#1D3F7A', WHITE = '#F2F5F8', J = jugShape(), HS = J.HS, RN = J.RN, per = J.per;
-      /* the print goes once round the jug; u follows the length round it (u = .5 is the front, the seam is at the back) */
-      const wc = cv(per, HS, 5), wx = flat(wc, WHITE), k = wc.k, FX = per * .5, LX = per * .25, RX = per * .75;
-      /* the front label */
-      rr(wx, wc, FX - 62, 62, 124, 118, 4, '#FFFFFF', 'rgba(60,70,90,.25)', .4);
-      const brand = (cx, y, s) => pt(wx, wc, 'Valley Fresh', cx, y, s, NAVY, {w: 800});
-      brand(FX, 74.5, 11);
-      wx.fillStyle = RED; wx.fillRect((FX - 62) * k, 84 * k, 124 * k, 28 * k);
-      pt(wx, wc, 'VITAMIN D', FX, 89.6, 4.8, '#FFE3DF', {w: 900, n: true, ls: .12});
-      const nm = pt(wx, wc, 'WHOLE MILK', FX, 102.2, 15, '#FFFFFF', {w: 800, max: 116});
-      fit(wx, wc, 'cow-jug', FX - 6, 136, 92, 42, () => { wx.fillStyle = '#7FB65A'; wx.beginPath(); wx.ellipse((FX - 6) * k, 150 * k, 46 * k, 7 * k, 0, 0, 7); wx.fill();
-        wx.fillStyle = '#C8392E'; wx.fillRect((FX - 22) * k, 128 * k, 26 * k, 20 * k); wx.beginPath(); wx.moveTo((FX - 25) * k, 129 * k); wx.lineTo((FX - 9) * k, 118 * k); wx.lineTo((FX + 7) * k, 129 * k); wx.closePath(); wx.fill();
-        wx.strokeStyle = '#FFFFFF'; wx.lineWidth = k * 1; wx.strokeRect((FX - 14) * k, 136 * k, 10 * k, 12 * k); wx.beginPath(); wx.moveTo((FX - 14) * k, 136 * k); wx.lineTo((FX - 4) * k, 148 * k); wx.moveTo((FX - 4) * k, 136 * k); wx.lineTo((FX - 14) * k, 148 * k); wx.stroke(); });
-      const prc = priceDot(wx, wc, FX + 47, 128, 8, '$4.29');
-      const sz = pt(wx, wc, '1 GALLON (3.78 L)', FX, 163.8, 6.6, NAVY, {w: 900, n: true});
-      pt(wx, wc, 'GRADE A · PASTEURIZED · HOMOGENIZED', FX, 173.2, 3.2, NAVY, {w: 900, n: true, max: 116});
-      /* the left side: Nutrition Facts, the bar code */
-      const nf = nfacts(wx, wc, LX - 31, 64, 62, MILK_NF, .78);
-      const ub = upc(wx, wc, LX - 18, nf[3] / k + 4, 36, 18, '04138309012');
-      snowflake(wx, wc, LX - 21, ub[3] / k + 4.6, 2.6, NAVY); pt(wx, wc, 'KEEP REFRIGERATED', LX - 17, ub[3] / k + 4.6, 3.6, NAVY, {w: 900, n: true, a: 'left'});
-      /* the right side: ingredients, the dairy, the recycling mark */
-      const ing = para(wx, wc, [['INGREDIENTS: ', true], ['Whole milk, vitamin D3.', false]], RX - 28, 80, 56, 3.2, '#2a2a33');
-      para(wx, wc, [['Valley Fresh Dairy', true], [' Tulare, CA 93274', false]], RX - 28, ing[3] / k + 3, 56, 3, '#2a2a33');
-      recycle(wx, wc, RX, 122, 7, NAVY); pt(wx, wc, 'PLEASE RECYCLE', RX, 133.5, 3.4, NAVY, {w: 900, n: true});
-      /* the back (the jug starts turned this way): the brand again, over the seam of the canvas */
-      for (const cx of [0, per]) { brand(cx, 104, 10); pt(wx, wc, 'From local family farms', cx, 115, 4, NAVY, {w: 900, n: true}); fit(wx, wc, 'cow-jug', cx, 140, 64, 32); }
-      /* canvas px -> point on the jug (a hair above the plastic, where the label's paper is) */
-      const at = (u, y, lift) => { const t = J.tOf(u), r = J.rAt(t, y) + lift; return V(MM(r * Math.sin(t)), MM(y), MM(r * Math.cos(t))); };
-      const bodyMap = (px, py) => at(px / wc.width, HS * (1 - py / wc.height), .3);
-      const bodyFrame = (px, py) => { const a = bodyMap(Math.max(0, px - 2), py), b = bodyMap(Math.min(wc.width, px + 2), py), r = b.sub(a).normalize(), u = V(0, 1, 0), n = r.clone().cross(u).normalize(); return {r, u, n}; };
+      const pkg = kit.newPkg('milk'), RED = '#D3312B', NAVY = '#1D3F7A', WHITE = '#F2F5F8', J = jugShape(), HN = J.HN, RN = J.RN;
       /* the jug: milky plastic, dull, with the soft orange peel of a blown bottle; its hollows are shaded */
-      const wt = K3.tex(wc, {wrap: true});
-      face(pkg, 'body', K3.mesh(K3.geo(J.pos, J.nor, J.uv, J.idx, J.col), K3.surf('hdpe', {map: wt, mm: [per, HS], ao: true})), wc, {map: bodyMap, frame: bodyFrame, curved: true});
-      /* the front label is paper: its own skin, lying on the plastic */
-      { const S = K3.sheet(124, 118, 4, 5), pos = [], nor = [], uv = [];
-        for (const [a, b] of S.pts) { const u = (FX - 62 + a) / per, y = 32 + b, p = at(u, y, .3), q = at(u + .002, y, .3).sub(at(u - .002, y, .3)), l = Math.hypot(q.x, q.z) || 1;
-          pos.push(p.x, p.y, p.z); nor.push(-q.z / l, 0, q.x / l); uv.push(u, y / HS); }
-        const lab = K3.mesh(K3.geo(pos, nor, uv, S.idx), K3.surf('litho', {map: wt, mm: [per, HS], lift: true}), {cast: false}); lab.userData.face = 'body'; pkg.group.add(lab); }
-      reg(pkg, 'body', 'name', nm);
-      reg(pkg, 'body', 'size', sz);
-      reg(pkg, 'body', 'nutrition', nf);
-      reg(pkg, 'body', 'upc', ub);
-      reg(pkg, 'body', 'price', prc);
+      plain(pkg, 'body', K3.mesh(K3.geo(J.pos, J.nor, J.uv, J.idx, J.col), K3.surf('hdpe', {color: WHITE, mm: [J.per, J.TOP], ao: true})));
+      /* two paper labels on the band, 120 x 84 mm: one on the front, one on the back (the jug starts turned that way). A label
+         lies flat on its side of the jug and bends round the two corners beside it: p = mm from its middle, y = mm up */
+      const LW = 120, LH = 84, LY = 28, fl = J.A - J.CR, rc = J.CR - J.REC;
+      const onBand = (p, y, lift, sg) => { const q = Math.abs(p), sx = p < 0 ? -sg : sg, ph = q <= fl ? 0 : Math.min((q - fl) / rc, Math.PI / 2), nx = Math.sin(ph), nz = Math.cos(ph);
+        return {p: V(MM(sx * (Math.min(q, fl) + (rc + lift) * nx)), MM(y), MM(sg * (fl + (rc + lift) * nz))), n: V(sx * nx, 0, sg * nz)}; };
+      const label = (name, c, sg) => { const S = K3.sheet(LW, LH, 2.5, 5), pos = [], nor = [], uv = [];
+        for (const [a, b] of S.pts) { const o = onBand(a - LW / 2, LY + b, .25, sg); pos.push(o.p.x, o.p.y, o.p.z); nor.push(o.n.x, 0, o.n.z); uv.push(a / LW, b / LH); }
+        return face(pkg, name, K3.mesh(K3.geo(pos, nor, uv, S.idx), sf('litho', c, {lift: true}), {cast: false}), c, {
+          map: (px, py) => onBand(px / c.k - LW / 2, LY + LH - py / c.k, .3, sg).p,
+          frame: px => { const n = onBand(px / c.k - LW / 2, LY, 0, sg).n; return {r: V(n.z, 0, -n.x), u: V(0, 1, 0), n}; }, curved: true}); };
+      /* the front label: the brand, a red band (red means whole milk), the cow in its field, how much is inside */
+      const lc = cv(LW, LH, 10), lx = flat(lc, '#FFFFFF'), k = lc.k, MX = LW / 2;
+      lx.fillStyle = '#E3F0FA'; lx.fillRect(0, 40 * k, LW * k, 30 * k);
+      pt(lx, lc, 'Valley Fresh', MX, 9.4, 11.5, NAVY, {w: 800});
+      lx.fillStyle = RED; lx.fillRect(0, 17 * k, LW * k, 24 * k);
+      pt(lx, lc, 'VITAMIN D', MX, 21.8, 4.2, '#FFE3DF', {w: 900, n: true, ls: .12});
+      const nm = pt(lx, lc, 'WHOLE MILK', MX, 32.2, 14, '#FFFFFF', {w: 800, max: 112});
+      fit(lx, lc, 'cow-jug', 47, 55.3, 66, 26.5, () => { lx.fillStyle = '#7FB65A'; lx.beginPath(); lx.ellipse(47 * k, 65 * k, 30 * k, 4 * k, 0, 0, 7); lx.fill();
+        lx.fillStyle = '#C8392E'; lx.fillRect(37 * k, 50 * k, 20 * k, 15 * k); lx.beginPath(); lx.moveTo(35 * k, 50.6 * k); lx.lineTo(47 * k, 42.6 * k); lx.lineTo(59 * k, 50.6 * k); lx.closePath(); lx.fill();
+        lx.strokeStyle = '#FFFFFF'; lx.lineWidth = k * .8; lx.strokeRect(43 * k, 56 * k, 8 * k, 9 * k); });
+      const prc = priceDot(lx, lc, 100, 55, 7.8, '$4.29');
+      lx.fillStyle = NAVY; lx.fillRect(0, 69.5 * k, LW * k, 14.5 * k);
+      const sz = pt(lx, lc, '1 GALLON (3.78 L)', MX, 75, 5.8, '#FFFFFF', {w: 900, n: true});
+      pt(lx, lc, 'GRADE A · PASTEURIZED · HOMOGENIZED', MX, 80.7, 2.8, '#DCE6F5', {w: 900, n: true, max: 112});
+      label('label', lc, 1);
+      reg(pkg, 'label', 'name', nm);
+      reg(pkg, 'label', 'size', sz);
+      reg(pkg, 'label', 'price', prc);
+      /* the back label: Nutrition Facts, and beside it how to keep it, what is in it, the dairy, the bar code */
+      const bc = cv(LW, LH, 10), bx = flat(bc, '#FFFFFF');
+      const nf = nfacts(bx, bc, 3, 3.5, 58, MILK_NF, .86);
+      snowflake(bx, bc, 68, 8.4, 2.5, NAVY); pt(bx, bc, 'KEEP REFRIGERATED', 72, 8.5, 3.2, NAVY, {w: 900, n: true, a: 'left'});
+      const ing = para(bx, bc, [['INGREDIENTS: ', true], ['Whole milk, vitamin D3.', false]], 65, 14.5, 52, 2.9, '#2a2a33');
+      const adr = para(bx, bc, [['Valley Fresh Dairy', true], [' Tulare, CA 93274', false]], 65, ing[3] / k + 2.4, 52, 2.7, '#2a2a33');
+      pt(bx, bc, 'From local family farms', 91, adr[3] / k + 6.2, 3.7, NAVY, {w: 800, max: 52});
+      const ub = upc(bx, bc, 73, 52, 36, 17, '04138309012');
+      recycle(bx, bc, 69.5, 77.6, 3.3, NAVY); pt(bx, bc, 'PLEASE RECYCLE', 75, 77.8, 2.8, NAVY, {w: 900, n: true, a: 'left'});
+      label('back', bc, -1);
+      reg(pkg, 'back', 'nutrition', nf);
+      reg(pkg, 'back', 'upc', ub);
       /* the ring under the cap, in the jug's own plastic (the neck itself is part of the jug's body) */
-      plain(pkg, 'neck', K3.mesh(K3.revolve(K3.fillet([[RN - .6, HS + 15.6], [RN + 3.6, HS + 17.4, 1.2], [RN + 3.6, HS + 19.8, 1.2], [RN - 1.4, HS + 20.6, .5], [RN - 1.4, HS + 25]]), {seg: 96}),
-        K3.surf('hdpe', {color: WHITE, mm: [2 * Math.PI * RN, 30]})));
-      /* the red screw cap, with the ring that breaks off under it */
-      const capR = 23.5, capH = 18, capY = HS + 24;
-      part(pkg, 'cap', screwCap(capR, capY, capH, RED, {band: 3.7, ribs: 64}));
+      plain(pkg, 'neck', K3.mesh(K3.revolve(K3.fillet([[RN - .8, HN + 15], [RN + 3, HN + 15.8, .9], [RN + 3, HN + 17.8, .9], [RN - .8, HN + 18.6]]), {seg: 96}),
+        K3.surf('hdpe', {color: '#D8DEE5', mm: [2 * Math.PI * RN, 30]})));
+      /* the red screw cap (a 38 mm dairy cap, 43 mm across), with the ring that breaks off under it */
+      const capR = 21.5, capH = 11, capY = HN + 22;
+      part(pkg, 'cap', screwCap(capR, capY, capH, RED, {band: 3.2, ribs: 60, amp: .5, round: 2, lip: 3.4}));
       /* the date: hi-res inkjet on the front of the neck, right under the ring: the date 4.2 mm, the dairy's code 3 mm */
-      const Rd = RN + .1, DW = 24, DH = 13.6, dc = cv(DW, DH, 50), dx = dc.getContext('2d'), dyc = HS + 1.2 + DH / 2, dthL = DW / Rd, dth0 = -dthL / 2;
+      const Rd = RN + .1, DW = 24, DH = 13.6, dc = cv(DW, DH, 50), dx = dc.getContext('2d'), dyc = HN + 1.2 + DH / 2, dthL = DW / Rd, dth0 = -dthL / 2;
       kit.printOn(pkg, dx, dc, 'print', ink([[{t: dateText, k: 'date'}]], 1.2, .9, 4.2, 4.2));
       const cb = dots(dx, dc, code, 1.2, 8.2, 3, '#1E2433').box(0, code.length);
       chunk(pkg, 'print', 'code', cb, {t: code, line: 1, h: 3, tag: "dairy's code", coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`});
@@ -674,7 +716,7 @@ export function rounds(kit, {today, rand}) {
       return finish(pkg, {cy: MM((capY + capH) / 2), el: .3, noun: 'milk', spot: 'print', where: 'on the neck'});
     };
     R4.push({name: 'Milk', newThing: 'no clue words at all', build, kw: null, clue: 'the <b>month</b>', dateText, date: iso(d), until: iso(d), say: md(m, day),
-      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-41, 190, 0], [41, 244, 26], null, .1, 0),
+      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-41, 199, 0], [41, 253, 26], null, .1, 0),
       choices: choices({t: md(m, day), coach: `<b>${code}</b> is the dairy's code.`}, [
         {t: md(5, d1), coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`, src: 'code'},
         {t: md(m, 6), coach: `<b>06</b> is part of the <b>dairy's code</b>.`, src: 'code'},

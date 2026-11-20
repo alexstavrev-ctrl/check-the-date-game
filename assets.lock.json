@@ -3,7 +3,7 @@
  "game": "check-the-date-game",
  "library": {
   "repo": "alexstavrev-ctrl/classroom-assets",
-  "commit": "13e18b5dea8d06661c0f4c7a18f0fdfd5068ac31"
+  "commit": "5348fce602fa7ec60381fcc9a1fb6c5fc61acf7e"
  },
  "approved_baseline": {},
  "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
@@ -231,6 +231,18 @@
    "ref": "peanuts.webp",
    "screens": "Find the Date!: the Sunny Acres peanut butter jar (front label), Level 4 round 1"
   },
+  "find/art/plate.webp": {
+   "asset": "find-pkg.plate",
+   "version": 1,
+   "lib": "images/find-packages/web/plate.webp",
+   "sha256": "5299b1259d293763bb97207a90d97793a1bd484701f3ed76e1c5622a1095a49f",
+   "px": [
+    720,
+    720
+   ],
+   "ref": "plate.webp",
+   "screens": "Find the Date!: the Casa Bella spaghetti box (the plate on the front), Level 4 round 5"
+  },
   "find/art/soup-bowl.webp": {
    "asset": "find-pkg.soup-bowl",
    "version": 1,
@@ -242,6 +254,30 @@
    ],
    "ref": "soup-bowl.webp",
    "screens": "Find the Date!: the Simmer & Spoon soup can (front of the label), Levels 1 to 3"
+  },
+  "find/art/strands.webp": {
+   "asset": "find-pkg.strands",
+   "version": 1,
+   "lib": "images/find-packages/web/strands.webp",
+   "sha256": "f3f98c420e408f13d463a42adf8043d8dec6e1ea80c229d7d219577287b71097",
+   "px": [
+    900,
+    420
+   ],
+   "ref": "strands.webp",
+   "screens": "Find the Date!: the Casa Bella spaghetti box (the strands behind the window), Level 4 round 5"
+  },
+  "find/art/wheat.webp": {
+   "asset": "find-pkg.wheat",
+   "version": 1,
+   "lib": "images/find-packages/web/wheat.webp",
+   "sha256": "34d13b5c621f2d4a2e7ee18b8578976615c6d9680aff19fb14178f524fa03d90",
+   "px": [
+    600,
+    600
+   ],
+   "ref": "wheat.webp",
+   "screens": "Find the Date!: the Casa Bella spaghetti box (back and right side), Level 4 round 5"
   }
  },
  "inline": [],
