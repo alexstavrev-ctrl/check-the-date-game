@@ -3,7 +3,7 @@
  "game": "check-the-date-game",
  "library": {
   "repo": "alexstavrev-ctrl/classroom-assets",
-  "commit": "5348fce602fa7ec60381fcc9a1fb6c5fc61acf7e"
+  "commit": "2a67752d7a27ed4e89e7a951414b64aeae86ab3e"
  },
  "approved_baseline": {},
  "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
@@ -159,17 +159,17 @@
    "ref": "cereal-bowl.webp",
    "screens": "Find the Date!: the Bright Morning cereal box (front, and small at the end of the maze on the back), Levels 1 to 3"
   },
-  "find/art/cow-jug.webp": {
-   "asset": "find-pkg.cow-jug",
+  "find/art/cow-bell.webp": {
+   "asset": "find-pkg.cow-bell",
    "version": 1,
-   "lib": "images/find-packages/web/cow-jug.webp",
-   "sha256": "a473ddbdba835c3c7c0c6bbcf3488cf0a2cf2467f9863c85a765336ea694d4b9",
+   "lib": "images/find-packages/web/cow-bell.webp",
+   "sha256": "1b37eee07b0096328a9262171a979b2fec8e7754791bb24b5288082d549d137c",
    "px": [
-    600,
-    300
+    800,
+    602
    ],
-   "ref": "cow-jug.webp",
-   "screens": "Find the Date!: the Valley Fresh gallon of milk (front label and back), Level 4 round 6"
+   "ref": "cow-bell.webp",
+   "screens": "Find the Date!: the Valley Fresh half gallon milk carton (the cow on the front), Level 4 round 6"
   },
   "find/art/crackers.webp": {
    "asset": "find-pkg.crackers",
@@ -182,6 +182,30 @@
    ],
    "ref": "crackers.webp",
    "screens": "Find the Date!: the Prairie Mill crackers box (front), Level 4 round 4"
+  },
+  "find/art/glass.webp": {
+   "asset": "find-pkg.glass",
+   "version": 1,
+   "lib": "images/find-packages/web/glass.webp",
+   "sha256": "0421bf9fb9f1c6a55d9251e1d6348d6ffa3da6a0adc479f4604fc59afbb5adf0",
+   "px": [
+    640,
+    640
+   ],
+   "ref": "glass.webp",
+   "screens": "Find the Date!: the Valley Fresh half gallon milk carton (the glass and bottle on the back), Level 4 round 6"
+  },
+  "find/art/meadow.webp": {
+   "asset": "find-pkg.meadow",
+   "version": 1,
+   "lib": "images/find-packages/web/meadow.webp",
+   "sha256": "2ef0b7bc06604a94ab42c680b39cab07401789e9b9c02ee449d4b666ffc334d6",
+   "px": [
+    1600,
+    800
+   ],
+   "ref": "meadow.webp",
+   "screens": "Find the Date!: the Valley Fresh half gallon milk carton (the meadow round its foot: the left half on the front, the right half on the right side, and both again as their mirror image), Level 4 round 6"
   },
   "find/art/milk-cow.webp": {
    "asset": "find-pkg.milk-cow",
@@ -289,6 +313,14 @@
    "sha256": "048f162b08f23a3eb86ebab45022ef7e8cd7216d56465e955d3c84686a90164c",
    "approved": "Alex, 2026-11-20 04:13 UTC: rigid packages only (jars, bottles, boxes, vacuum sealed cheese), no meat in a tray",
    "why": "Level 4 round 2's deli turkey tray left Find the Date; the round is now a vacuum sealed cheese block with no picture. The picture stays in the library."
+  },
+  {
+   "path": "find/art/cow-jug.webp",
+   "asset": "find-pkg.cow-jug",
+   "version": 1,
+   "sha256": "a473ddbdba835c3c7c0c6bbcf3488cf0a2cf2467f9863c85a765336ea694d4b9",
+   "approved": "Alex, 2026-11-20 16:36 UTC: \"just make a paper milk carton, not a bottle\" (the gallon jug leaves Level 4 round 6)",
+   "why": "Level 4 round 6 is now a paper half gallon carton printed with the meadow, cow-bell and glass pictures; the jug's cow picture is no longer loaded. The picture stays in the library."
   }
  ]
 }
