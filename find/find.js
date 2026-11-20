@@ -8,7 +8,8 @@
    the game-show win, the narrator) and the game's look (css/ff-engine.css + css/game.css: also its wall calendar and phone
    classes for Check it). Nothing is copied.
    It needs: js/ff-engine.js, js/winfx-astra.js, js/dotmatrix.js (DOTFONT) and js/game.js loaded first, and
-   find/three.module.min.js (three.js 0.160.0, loaded with import() inside start()) and the package pictures in find/art/
+   find/three.module.min.js (three.js 0.160.0) and find/kit3d.js (the 3D kit: the studio light, the real materials and the
+   shapes of the packages), both loaded with import() inside start(), and the package pictures in find/art/
    (classroom-assets group find-packages, loaded in start() with the fonts).
    It defines one name only: window.FindTheDate = {start(el, {level, round, today, rand, onExit}), stop()}.
    This is a public page: no student names or student data anywhere in it.
@@ -16,7 +17,8 @@
 (function(){
 'use strict';
 const HERE=(document.currentScript&&document.currentScript.src)||location.href;
-let THREE=null;
+let THREE=null,K3=null;                                /* three.js and the 3D kit (find/kit3d.js: light, materials, shapes) */
+let QSLOW=0;                                           /* how far the look stepped down on this screen (0 = the full look); it stays for the visit */
 
 /* ---------- the engine, by name (never copies). Each call is guarded so a missing piece never breaks a round. ---------- */
 const E={
@@ -92,8 +94,9 @@ function nutrition(x,c,pxmm,pymm,wmm,lines){const k=c.k,row=4.2,hmm=9+lines.leng
   txt(x,c,'Nutrition Facts',pxmm+1.5,pymm+3.6,4.2,'#2a2a33',{a:'left',f:'Nunito',w:900});x.fillStyle='#2a2a33';x.fillRect((pxmm+1.2)*k,(pymm+6.4)*k,(wmm-2.4)*k,k*.8);
   lines.forEach((l,i)=>{const y=pymm+9.4+i*row;txt(x,c,l[0],pxmm+1.5,y,2.7,'#2a2a33',{a:'left',f:'Nunito',w:800});txt(x,c,l[1],pxmm+wmm-1.5,y,2.7,'#2a2a33',{a:'right',f:'Nunito',w:800});x.fillRect((pxmm+1.2)*k,(y+1.9)*k,(wmm-2.4)*k,k*.2)});
   return[pxmm*k,pymm*k,(pxmm+wmm)*k,(pymm+hmm)*k]}
-function tex(c){const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=16;return t}
-function mat(c){return new THREE.MeshLambertMaterial({map:tex(c)})}
+function tex(c){return K3.tex(c)}
+/* a printed surface: kind = what it is made of (find/kit3d.js: board, carton, paper...); its grain takes the drawing's real size */
+function mat(c,kind,o){return K3.surf(kind||'board',Object.assign({map:c,mm:[c.width/c.k,c.height/c.k]},o||{}))}
 function quadGeo(p){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([...p[0].toArray(),...p[1].toArray(),...p[2].toArray(),...p[3].toArray()],3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();return g}
 function boxQuads(w,h,d){const X=w/2,Z=d/2,T=h;return{
@@ -119,7 +122,11 @@ function newPkg(noun){const P={group:new THREE.Group(),faces:{},regs:[],lines:[]
 function quadMap(p,c){return(px,py)=>{const u=px/c.width,v=1-py/c.height;const a=p[0].clone().lerp(p[1],u),b=p[3].clone().lerp(p[2],u);return a.lerp(b,v)}}
 function quadFrame(p){const r=p[1].clone().sub(p[0]).normalize(),u=p[3].clone().sub(p[0]).normalize(),n=r.clone().cross(u).normalize();return()=>({r,u,n})}
 function addFace(P,name,mesh,c,o){mesh.userData.face=name;P.faces[name]={name,mesh,c,k:c.k,W:c.width,H:c.height,map:o.map,frame:o.frame,curved:!!o.curved};P.group.add(mesh);return P.faces[name]}
-function addQuad(P,name,p,c){return addFace(P,name,new THREE.Mesh(quadGeo(p),mat(c)),c,{map:quadMap(p,c),frame:quadFrame(p)})}
+function addQuad(P,name,p,c,kind){return addFace(P,name,K3.mesh(quadGeo(p),mat(c,kind)),c,{map:quadMap(p,c),frame:quadFrame(p)})}
+/* a folding box with softly rounded edges (kit3d.js rbox; r mm, o.bulge = how far its big sides bow out): put(name, c, kind)
+   hangs the drawing c on that side. Each side keeps its flat drawing and its flat map, so prints and taps stay where they were */
+function boxOf(P,W,H,D,r,o){const Q=boxQuads(MM(W),MM(H),MM(D)),G=K3.rbox(W,H,D,r,o||{});
+  return(n,c,kind)=>addFace(P,n,K3.mesh(G[n],mat(c,kind)),c,{map:quadMap(Q[n],c),frame:quadFrame(Q[n])})}
 /* the date print. stamp = a rubber-stamp line in Baloo 2 (Level 1); ink = inkjet dot-matrix lines (Levels 2 and 3) */
 function printOn(P,x,c,face,sp){const k=c.k;P.spot=face;
   if(sp.type==='stamp'){const t=sp.lines[0].map(q=>q.t).join(' '),S=sp.size*k;x.save();x.font='800 '+S+'px "Baloo 2"';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#1E2433';x.globalAlpha=.9;
@@ -212,7 +219,9 @@ const MILK_NF={serv:'8 servings per container',size:'1 cup (240mL)',cal:'120',
   rows:[['Total Fat','5g','6%'],['Saturated Fat','3g','15%',1,false],['Trans Fat','0g','',1,false],['Cholesterol','20mg','7%'],['Sodium','120mg','5%'],
     ['Total Carbohydrate','12g','4%'],['Total Sugars','12g','',1,false],['Protein','8g','']],
   vit:[['Vitamin D','2.5mcg','15%'],['Calcium','310mg','25%'],['Potassium','400mg','8%']]};
-function milk(pr,price){const W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group,Q=boxQuads(MM(W),MM(H),MM(D));
+function milk(pr,price){const W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group;
+  /* the body: board under a glossy plastic film, its upright edges softly rounded, its walls bowed out a little by the milk */
+  const put=boxOf(P,W,H,D,2.2,{sharp:{top:true},bulge:{front:1.1,back:1.1,left:1.1,right:1.1}});
   const BL='#1F5FAE',INK='#123A6B',LB='#DCEAF8',GRN='#5AA149',SUN='#F6B93B',PAPER='#FFFFFF';
   /* the brand: a sun over a green hill, then the name */
   const logo=(x,c,cx,cy,s)=>{const k=c.k;x.save();x.translate(cx*k,(cy-6.5*s)*k);
@@ -222,7 +231,7 @@ function milk(pr,price){const W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group,Q=
     const a=pt(x,c,'Sunny Fields',cx,cy+3.6*s,9.4*s,BL,{w:800}),b=pt(x,c,'FARM FRESH',cx,cy+10.6*s,2.9*s,GRN,{n:1,w:900,ls:.2});
     return[Math.min(a[0],(cx-11*s)*k),(cy-15.5*s)*k,Math.max(a[2],(cx+11*s)*k),b[3]]};
   const face=(n,draw)=>{const c=cv(W,H,7),x=c.getContext('2d'),k=c.k;x.fillStyle=PAPER;x.fillRect(0,0,c.width,c.height);
-    x.fillStyle=BL;x.fillRect(0,0,c.width,3.2*k);x.fillRect(0,c.height-2.2*k,c.width,2.2*k);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,Q[n],c)};
+    x.fillStyle=BL;x.fillRect(0,0,c.width,3.2*k);x.fillRect(0,c.height-2.2*k,c.width,2.2*k);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);put(n,c,'carton')};
   face('front',(x,c,k)=>{P.reg('front','name',logo(x,c,W/2,24,1));
     art(x,c,'cow',W/2,66.5,50);
     x.fillStyle=LB;waveBand(x,c,99,160,2.4,LB,.4);waveBand(x,c,104,163,2.2,BL,1.1);
@@ -245,16 +254,38 @@ function milk(pr,price){const W=95,D=95,H=195,G=40,P=newPkg('milk'),g=P.group,Q=
     recycle(x,c,W/2,128,8.5,GRN);pt(x,c,'Please recycle this carton.',W/2,145,3.6,INK,{n:1,w:800})});
   const X=MM(W)/2,Z=MM(D)/2,Ht=MM(H),Gt=MM(G);
   const roof=(n,p,draw)=>{const c=cv(W,SLOPE,14),x=c.getContext('2d'),k=c.k;x.fillStyle=PAPER;x.fillRect(0,0,c.width,c.height);x.fillStyle=BL;x.fillRect(0,c.height-2.6*k,c.width,2.6*k);
-    if(draw)draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,p,c)};
+    if(draw)draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,p,c,'carton')};
   roof('roofF',[V(-X,Ht,Z),V(X,Ht,Z),V(X,Ht+Gt,0),V(-X,Ht+Gt,0)],(x,c)=>{P.reg('roofF','name',logo(x,c,W/2,SLOPE*.5,.62))});
   roof('roofB',[V(X,Ht,-Z),V(-X,Ht,-Z),V(-X,Ht+Gt,0),V(X,Ht+Gt,0)]);
-  const tri=p=>{const c=cv(D,G,5),x=c.getContext('2d');x.fillStyle='#F7FAFD';x.fillRect(0,0,c.width,c.height);const m=new THREE.Mesh(quadGeo(p),mat(c));m.userData.face='';g.add(m)};
-  tri([V(X,Ht,Z),V(X,Ht,-Z),V(X,Ht+Gt,0),V(X,Ht+Gt,0)]);tri([V(-X,Ht,-Z),V(-X,Ht,Z),V(-X,Ht+Gt,0),V(-X,Ht+Gt,0)]);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(MM(W),MM(12),MM(3)),new THREE.MeshLambertMaterial({color:'#F2F6FB'}));fin.position.set(0,Ht+Gt+MM(6),0);fin.userData.face='';g.add(fin);
-  {const c=cv(W,D,pr.bottom?14:4),x=c.getContext('2d');x.fillStyle='#EEF2F7';x.fillRect(0,0,c.width,c.height);if(pr.bottom)printOn(P,x,c,'bottom',pr.bottom);addQuad(P,'bottom',Q.bottom,c)}
+  /* the gable ends, folded as on a real carton: each side panel tucks in under the roof, a slanted three-cornered wall that runs
+     in to the middle of the ridge, with the undersides of the two roof panels over it (not tappable) */
+  {const pos=[],nor=[],uv=[],col=[],idx=[],M=V(0,Ht+Gt,0);
+    const tri=(pts,sh,want,uvOf)=>{let [a,b,c]=pts,[sa,sb,sc]=sh;let n=b.clone().sub(a).cross(c.clone().sub(a)).normalize();if(n.dot(want)<0){[b,c]=[c,b];[sb,sc]=[sc,sb];n.negate()}
+      const i=pos.length/3;for(const [q,t] of [[a,sa],[b,sb],[c,sc]]){pos.push(q.x,q.y,q.z);nor.push(n.x,n.y,n.z);col.push(t,t,t);uv.push(...uvOf(q))}idx.push(i,i+1,i+2)};
+    /* everything of the fold lies a hair (0.3 mm) under the roof panels and is drawn a little deeper (sink), so no edge of it shows through them */
+    const dF=V(0,-Z,-Gt).normalize().multiplyScalar(MM(.3)),dB=V(0,-Z,Gt).normalize().multiplyScalar(MM(.3)),Mi=V(0,Ht+Gt-MM(.3)*MM(SLOPE)/Z,0);
+    for(const sx of [1,-1]){const A=V(sx*X,Ht,Z),B=V(sx*X,Ht,-Z),R=V(sx*X,Ht+Gt,0);
+      tri([A.clone().add(dF),B.clone().add(dB),Mi],[1,1,.62],V(sx*Gt,X,0),q=>[q.z/(2*Z)+.5,(q.y-Ht)/Gt]);
+      for(const [E,d] of [[A,dF],[B,dB]])tri([E.clone().add(d),R.clone().add(d),M.clone().add(d)],[.86,.8,.5],d,q=>[q.x/(2*X)+.5,(q.y-Ht)/Gt])}
+    const m=K3.mesh(K3.geo(pos,nor,uv,idx,col),K3.surf('carton',{color:'#F7FAFD',ao:true,sink:true,mm:[D,G]}));m.userData.face='';g.add(m)}
+  /* the sealed fin along the ridge: the layers pressed flat, with the fine ribs of the sealing jaws */
+  {const FG=K3.rbox(W,13.6,2.6,.8,{sharp:{bottom:true}}),fm=K3.surf('carton',{color:'#F2F6FB',grain:['seal',.9],mm:[W,13.6]}),fe=K3.surf('carton',{color:'#F2F6FB'});
+    for(const n of ['front','back','left','right','top']){const m=K3.mesh(FG[n],n==='front'||n==='back'?fm:fe);m.position.y=Ht+Gt-MM(1.6);m.userData.face='';g.add(m)}}
+  {const c=cv(W,D,pr.bottom?14:4),x=c.getContext('2d');x.fillStyle='#EEF2F7';x.fillRect(0,0,c.width,c.height);if(pr.bottom)printOn(P,x,c,'bottom',pr.bottom);put('bottom',c,'carton')}
   P.cy=MM(H+G)/2;P.el=.3;P.noun='milk';P.where={roofB:'top',bottom:'bottom'}[P.spot]||'carton';return P}
 
 /* ---- condensed soup can: 66 mm across, 101 mm tall; the label goes once round (207 mm). Brand: Simmer & Spoon (invented) ---- */
+/* the ring tab of a pull-open can end, made once: a pressed tongue with a rolled edge, a finger hole and its rivet. In mm:
+   x across, y up from its middle, z along it from the rivet (0) to the ring end. A smooth solid from a field (kit3d.js nets) */
+let TAB=null;
+function tabShape(){if(TAB)return TAB;
+  const r1=6,r2=8.2,L=15,b=(r1-r2)/L,a=Math.sqrt(1-b*b),TH=.72,E=.62,K=.4;
+  /* its outline: a tongue that widens from the nose to the ring end, less the finger hole */
+  const d2=(x,z)=>{const px=Math.abs(x),py=z+1,k=py*a-px*b,o=k<0?Math.hypot(px,py)-r1:k>a*L?Math.hypot(px,py-L)-r2:px*a+py*b-r1;return Math.max(o,4.9-Math.hypot(x,z-14))};
+  const F=(x,y,z)=>{const d=d2(x,z),top=TH-.32*K3.sstep(1.3,2.3,-d),dy=Math.max(y-top,-TH-y),f=Math.min(Math.max(d+E,dy+E),0)+Math.hypot(Math.max(d+E,0),Math.max(dy+E,0))-E;
+    const rv=Math.max(Math.hypot(x,y+1.86,z)-3.14,-y-.2),h=Math.max(K-Math.abs(f-rv),0)/K;return Math.min(f,rv)-h*h*K*.25};
+  const N=K3.nets(F,[-9.4,-1.5,-8.2,9.4,2,23.6],.27,{shade:.5});
+  return TAB={pos:N.pos,nor:N.nor,idx:N.idx,shade:N.shade,n:N.n}}
 const SOUP_NF={serv:'About 2.5 servings per container',size:'½ cup (120mL)',cal:'90',
   rows:[['Total Fat','0g','0%'],['Sodium','480mg','21%'],['Total Carbohydrate','20g','7%'],['Total Sugars','12g','',1,false],['Protein','2g','']],
   vit:[['Vitamin D','0mcg','0%'],['Calcium','20mg','2%'],['Iron','0.8mg','4%'],['Potassium','310mg','6%']]};
@@ -282,24 +313,29 @@ function can(pr,price){const D=66,H=101,r=MM(D/2),P=newPkg('soup'),L=Math.PI*D,F
   para(x,c,[['Simmer & Spoon Kitchens, Springfield',false]],L-37,87.5,29,2.2,INK,{center:1});
   if(price)P.reg('label','price',priceDot(x,c,70,76,9,price));
   if(pr.label)printOn(P,x,c,'label',pr.label);
-  /* the label wraps the can: canvas x 0..W goes once around, starting at the back (theta = pi); the front (+Z) is at x = W/2 */
-  const side=new THREE.Mesh(new THREE.CylinderGeometry(r,r,MM(H),128,1,true,Math.PI),mat(c));side.position.y=MM(H)/2;
+  /* the label wraps the can: canvas x 0..W goes once around, starting at the back (theta = pi); the front (+Z) is at x = W/2.
+     Glossy printed paper; its two ends tuck in under the rolled rims */
+  const side=K3.mesh(K3.revolve([[D/2,1.2],[D/2,H-1.2]],{seg:160,arc:[Math.PI,Math.PI*2],v:[0,H]}),mat(c,'litho'));
   const th=px=>Math.PI+px/c.width*Math.PI*2;
   addFace(P,'label',side,c,{curved:true,map:(px,py)=>{const t=th(px);return V(r*Math.sin(t),MM(H)*(1-py/c.height),r*Math.cos(t))},
     frame:px=>{const t=th(px);return{r:V(Math.cos(t),0,-Math.sin(t)),u:V(0,1,0),n:V(Math.sin(t),0,Math.cos(t))}}});
-  /* the steel ends: brushed metal with the rings a real lid has */
-  const disc=(name)=>{const cc=cv(D,D,pr[name]?31:8),y=cc.getContext('2d'),s=cc.width;
-    const gr=y.createRadialGradient(s*.42,s*.4,s*.05,s/2,s/2,s/2);gr.addColorStop(0,'#EEF1F4');gr.addColorStop(.62,'#D3D8DE');gr.addColorStop(.9,'#BAC0C8');gr.addColorStop(1,'#9AA1AB');y.fillStyle=gr;y.fillRect(0,0,s,s);
-    y.strokeStyle='rgba(84,90,102,.5)';[.475,.45,.4,.33].forEach((f,i)=>{y.lineWidth=cc.k*(i?.35:.6);y.beginPath();y.arc(s/2,s/2,s*f,0,7);y.stroke()});
-    y.strokeStyle='rgba(255,255,255,.55)';[.462,.392].forEach(f=>{y.lineWidth=cc.k*.35;y.beginPath();y.arc(s/2,s/2,s*f,Math.PI*1.05,Math.PI*1.7);y.stroke()});
-    if(pr[name])printOn(P,y,cc,name,pr[name]);return cc};
-  const tc=disc('top'),top=new THREE.Mesh(new THREE.CircleGeometry(r,128),mat(tc));top.rotation.x=-Math.PI/2;top.position.y=MM(H);
-  addFace(P,'top',top,tc,{ring:1,map:(px,py)=>V((px/tc.width-.5)*2*r,MM(H),-(.5-py/tc.height)*2*r),frame:()=>({r:V(1,0,0),u:V(0,0,-1),n:V(0,1,0)})});
-  const bc=disc('bottom'),bot=new THREE.Mesh(new THREE.CircleGeometry(r,128),mat(bc));bot.rotation.x=Math.PI/2;
-  addFace(P,'bottom',bot,bc,{ring:1,map:(px,py)=>V((px/bc.width-.5)*2*r,0,(.5-py/bc.height)*2*r),frame:()=>({r:V(1,0,0),u:V(0,0,1),n:V(0,-1,0)})});
+  /* the two steel ends, turned like the real thing: the rolled seam round the edge (2.3 mm), the groove inside it, then the flat
+     panel 2.6 mm down. The top is the kind that pulls open (a score line and a ring tab); the bottom is plain, with one
+     raised ring, and the print goes on its flat middle. dip(r) = how far the end lies below its rim at r mm from the middle */
+  const SEAM=2.3,dip=q=>q<=28.3?2.6:q<=29?2.6+(q-28.3):q<=30.7?3.3:q<=31.3?3.3*(31.3-q)/.6:0;
+  const disc=name=>{const cc=cv(D,D,pr[name]?31:1),y=cc.getContext('2d');y.fillStyle='#D3D7DC';y.fillRect(0,0,cc.width,cc.height);if(pr[name])printOn(P,y,cc,name,pr[name]);return cc};
+  const tc=disc('top'),top=K3.mesh(K3.revolve(K3.fillet([[33,H-SEAM],[33.95,H-SEAM,.3],[33.95,H,.95],[31.3,H,.95],[30.7,H-3.3,.55],[29,H-3.3,.55],[28.3,H-2.6,.35],
+    [27.25,H-2.6],[26.95,H-2.84],[26.65,H-2.6],[0,H-2.6]],5),{seg:128,uv:'top',R:D/2,tan:true}),K3.surf('steel',{map:tc,env:1.45}));
+  addFace(P,'top',top,tc,{map:(px,py)=>{const a=(px/tc.width-.5)*D,b=-(.5-py/tc.height)*D;return V(MM(a),MM(H-dip(Math.hypot(a,b))),MM(b))},frame:()=>({r:V(1,0,0),u:V(0,0,-1),n:V(0,1,0)})});
+  const bc=disc('bottom'),bot=K3.mesh(K3.revolve(K3.fillet([[0,2.6],[25.3,2.6,.5],[25.9,2.2,.5],[27.3,2.2,.5],[27.9,2.6,.5],[28.3,2.6,.35],[29,3.3,.55],[30.7,3.3,.55],
+    [31.3,0,.95],[33.95,0,.95],[33.95,SEAM,.3],[33,SEAM]],5),{seg:128,uv:'bottom',R:D/2,tan:true}),K3.surf('steel',{map:bc,env:1.45}));
+  addFace(P,'bottom',bot,bc,{map:(px,py)=>{const a=(px/bc.width-.5)*D,b=(.5-py/bc.height)*D;return V(MM(a),MM(dip(Math.hypot(a,b))),MM(b))},frame:()=>({r:V(1,0,0),u:V(0,0,1),n:V(0,-1,0)})});
   P.faces.top.ring=P.faces.bottom.ring=true;
-  /* the rolled steel rims at both ends (not tappable) */
-  const rimM=new THREE.MeshLambertMaterial({color:'#C9CED6'});[0,MM(H)].forEach(yy=>{const t=new THREE.Mesh(new THREE.TorusGeometry(r-MM(.4),MM(1.1),10,96),rimM);t.rotation.x=Math.PI/2;t.position.y=yy;t.userData.face='';P.group.add(t)});
+  /* the ring tab on the top, riveted near the front edge and lying toward the middle (a tap on it counts as the top) */
+  {const T=tabShape(),n=T.n,pos=new Float32Array(n*3),nor=new Float32Array(n*3),uv=new Float32Array(n*2),col=new Float32Array(n*3),y0=H-2.6+.95,z0=16;
+    for(let i=0;i<n;i++){const a=-T.pos[i*3],b=z0-T.pos[i*3+2];pos[i*3]=MM(a);pos[i*3+1]=MM(y0+T.pos[i*3+1]);pos[i*3+2]=MM(b);
+      nor[i*3]=-T.nor[i*3];nor[i*3+1]=T.nor[i*3+1];nor[i*3+2]=-T.nor[i*3+2];uv[i*2]=a/D+.5;uv[i*2+1]=-b/D+.5;col[i*3]=col[i*3+1]=col[i*3+2]=T.shade[i]}
+    const tab=K3.mesh(K3.geo(pos,nor,uv,T.idx,col),K3.surf('alu',{color:'#E6E8EB',ao:true,env:1.3}));tab.userData.face='top';P.group.add(tab)}
   P.cy=MM(H)/2;P.el=.2;P.where={bottom:'bottom',top:'top',label:'label'}[P.spot]||'can';return P}
 
 /* ---- 12 oz cereal box: 193 x 284 x 66 mm. Brand: Bright Morning (invented) ---- */
@@ -307,9 +343,11 @@ const CEREAL_NF={serv:'About 12 servings per container',size:'1 cup (28g)',cal:'
   rows:[['Total Fat','2g','3%'],['Saturated Fat','0g','0%',1,false],['Trans Fat','0g','',1,false],['Cholesterol','0mg','0%'],['Sodium','140mg','6%'],
     ['Total Carbohydrate','22g','8%'],['Dietary Fiber','3g','11%',1,false],['Total Sugars','6g','',1,false],['Protein','3g','']],
   vit:[['Vitamin D','2mcg','10%'],['Calcium','100mg','8%'],['Iron','8mg','45%'],['Potassium','110mg','2%']]};
-function cereal(pr,price){const R=rng(21),W=193,H=284,D=66,P=newPkg('cereal'),Q=boxQuads(MM(W),MM(H),MM(D));
+function cereal(pr,price){const R=rng(21),W=193,H=284,D=66,P=newPkg('cereal');
+  /* a printed, varnished board box: softly rounded edges, its two big sides bowed out a little as a full box is */
+  const put=boxOf(P,W,H,D,1.6,{bulge:{front:1.3,back:1.3}});
   const Y1='#FFD34D',Y2='#FFC531',BLU='#2C62B4',BRN='#6B3210',RED='#D7372C',CRM='#FFF5D9',GRN='#3E9A4F';
-  const face=(n,fw,fh,draw,ppm)=>{const c=cv(fw,fh,ppm||6),x=c.getContext('2d'),k=c.k;x.fillStyle=Y1;x.fillRect(0,0,c.width,c.height);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);addQuad(P,n,Q[n],c)};
+  const face=(n,fw,fh,draw,ppm)=>{const c=cv(fw,fh,ppm||6),x=c.getContext('2d'),k=c.k;x.fillStyle=Y1;x.fillRect(0,0,c.width,c.height);draw(x,c,k);if(pr[n])printOn(P,x,c,n,pr[n]);put(n,c)};
   /* the brand: a red rounded badge with a small sun */
   const brand=(x,c,cx,cy,s)=>{const b=rr(x,c,cx-30*s,cy-8.5*s,60*s,17*s,8.5*s,RED);const k=c.k;
     x.save();x.fillStyle=Y1;x.beginPath();x.arc((cx-21.5*s)*k,(cy+.2*s)*k,3.6*s*k,0,7);x.fill();x.strokeStyle=Y1;x.lineWidth=.9*s*k;x.lineCap='round';
@@ -429,7 +467,7 @@ function makeRounds(L,today,rnd){if(LEVELS[L].l4)return rounds4(today,rnd);const
   })}
 /* ---------- Level 4 comes from find/level4.js (the messy-dates thread), drawn with this kit (README: Level 4 contract) ---------- */
 let L4MOD=null;
-const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,tex,quadGeo,quadMap,quadFrame,boxQuads,MM,V,THREE,newPkg,addQuad,addFace,printOn,
+const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,tex,quadGeo,quadMap,quadFrame,boxQuads,MM,V,THREE,K3,newPkg,addQuad,addFace,printOn,
   /* the print look of the redesigned packages (11/19): crisp type, a real UPC-A, the US Nutrition Facts panel, a round price sticker */
   pt,para,rr,upc,nfacts,priceDot,waveBand,snowflake,recycle,
   /* art(x,c,name,xm,ym,wm): a package picture from find/art/, its solid part wm mm wide, centred at (xm,ym); null if it did not load */
@@ -437,7 +475,7 @@ const KIT=()=>({rng,cv,paper,pencil,edge,txt,dots,barcode,sticker,nutrition,mat,
 /* level4.js and its look, level4.css (every rule under #find .fd-l4), load the first time someone picks Level 4 */
 function loadCSS4(){return new Promise(ok=>{if(document.querySelector('link[data-fd-l4]'))return ok();const l=document.createElement('link');l.rel='stylesheet';
   l.href=new URL('level4.css',HERE).href;l.setAttribute('data-fd-l4','');l.onload=()=>ok();l.onerror=()=>{console.error('Find the Date: level4.css could not load.');ok()};document.head.appendChild(l)})}
-async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js',HERE).href),loadCSS4()]);
+async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('level4.js?v=2',HERE).href),loadCSS4()]);
     /* Level 4's own package pictures: level4.js may export art = {name: {file: 'name.webp', trim: [x0,y0,x1,y1]}} (files in find/art/,
        trim = the solid box in the 600 px file). They load here, before any build(), so kit.art() can draw them */
     const A=r[0].art;if(A&&typeof A==='object'){for(const n of Object.keys(A))if(!ART_FILES[n]&&A[n]&&A[n].file){ART_FILES[n]=A[n].file;ART_TRIM[n]=A[n].trim||[0,0,600,600]}await loadArt()}
@@ -487,7 +525,7 @@ function Activity(el,o){
   const today=(o.today instanceof Date&&!isNaN(o.today))?new Date(o.today.getFullYear(),o.today.getMonth(),o.today.getDate()):(()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())})();
   const rnd=typeof o.rand==='function'?o.rand:Math.random;
   const onExit=typeof o.onExit==='function'?o.onExit:()=>{};
-  let CHK=false,alive=true,level=clampI(o.level,0,LEVELS.length-1),round=clampI(o.round,0,LEVELS[clampI(o.level,0,LEVELS.length-1)].l4?5:2),ROUNDS=[],RD=null,P=null,won=new Set(),timers=[],raf=0,tw=null,bigWinOn=false,lastU=0;
+  let CHK=false,alive=true,level=clampI(o.level,0,LEVELS.length-1),round=clampI(o.round,0,LEVELS[clampI(o.level,0,LEVELS.length-1)].l4?5:2),ROUNDS=[],RD=null,P=null,won=new Set(),timers=[],raf=0,tw=null,bigWinOn=false,lastU=0,built=0;
   const S={step:'find',q:new THREE.Quaternion(),qSay:null,zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,full:false,missed:false,sup:false,mark:'',vready:0,tick:0};
   const later=(ms,f)=>{const t=setTimeout(()=>{timers=timers.filter(x=>x!==t);if(alive)f()},ms);timers.push(t);return t};
   const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
@@ -518,7 +556,15 @@ function Activity(el,o){
   renderer.setPixelRatio(Math.min(2,Math.max(window.devicePixelRatio||1,1.5)));renderer.setSize(innerWidth,innerHeight,false);renderer.setClearColor(0x000000,0);
   stage.appendChild(renderer.domElement);
   const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(24,innerWidth/innerHeight,.01,100);
-  scene.add(new THREE.AmbientLight(0xffffff,1.55));const sun=new THREE.DirectionalLight(0xffffff,1.25);sun.position.set(-2.5,4,4);scene.add(sun);
+  /* the studio (find/kit3d.js): a room of soft lights that every surface mirrors a little, and one key light with a soft shadow */
+  const ST=K3.studio(renderer,scene);
+  /* keeping it smooth: when this screen draws the full look too slowly while the package turns (the middle one of 12 frames
+     takes over 36 ms, twice in a row: under about 28 pictures a second), the look steps down for the rest of the visit: first
+     a smaller shadow picture and fewer pixels, then no shadow on the package. The shapes, materials, prints and taps stay. */
+  const QL={lock:false,skip:8,slow:0,buf:[],prev:0},PR0=renderer.getPixelRatio();
+  function quality(n){QSLOW=Math.max(0,Math.min(2,n|0));ST.quality(QSLOW);const pr=QSLOW?Math.min(PR0,QSLOW===1?1.5:1.25):PR0;
+    if(pr!==renderer.getPixelRatio())renderer.setPixelRatio(pr);QL.buf.length=0;QL.skip=8;QL.slow=0;QL.prev=0}
+  if(QSLOW)quality(QSLOW);
   const pivot=new THREE.Group();scene.add(pivot);
   const shC=document.createElement('canvas');shC.width=shC.height=256;{const sx=shC.getContext('2d'),gr=sx.createRadialGradient(128,128,10,128,128,128);gr.addColorStop(0,'rgba(18,48,92,.26)');gr.addColorStop(1,'rgba(18,48,92,0)');sx.fillStyle=gr;sx.fillRect(0,0,256,256)}
   const shTex=new THREE.CanvasTexture(shC),shadow=new THREE.Mesh(new THREE.PlaneGeometry(1,.62),new THREE.MeshBasicMaterial({map:shTex,transparent:true,depthWrite:false}));shadow.rotation.x=-Math.PI/2;scene.add(shadow);
@@ -534,14 +580,37 @@ function Activity(el,o){
     phT.copy(view.tgt);phT.y+=view.d*.0017*Math.sin(PH.t*.95);phT.x+=view.d*.0007*Math.sin(PH.t*.61+1.3);placeAt(phT,view.d*(1+PH.dip),view.el)};
   const W=()=>innerWidth,H=()=>innerHeight;
   const scr=p=>{tmp.copy(p).project(cam);return[(tmp.x+1)/2*W(),(1-tmp.y)/2*H()]};
-  /* frame world points: half-size tw x th and centre (tcx, tcy), in NDC (-1..1). The viz dev's fit. */
-  function fitCam(pts,e,tw0,th0,tcx,tcy){const tgt=new THREE.Vector3();pts.forEach(p=>tgt.add(p));tgt.divideScalar(pts.length);let d=6;const rt=new THREE.Vector3(),up=new THREE.Vector3();
+  /* frame world points: half-size tw x th and centre (tcx, tcy), in NDC (-1..1). The viz dev's fit: 16 quick steps, each one
+     backing the camera off by how much too big the points looked. That settles for nearly every pose. It does not for a long
+     package seen end on (the spaghetti box turned to show its top): the near end grows faster than the camera backs off, so
+     the steps overshoot one way and then the other, and the picture came out at whichever step was last (once with the date
+     off the screen). When the steps have not settled, fitSure() solves the same framing surely. */
+  const FITN=[0,0];
+  function fitCam(pts,e,tw0,th0,tcx,tcy){const tgt=new THREE.Vector3();pts.forEach(p=>tgt.add(p));tgt.divideScalar(pts.length);const c0=tgt.clone();let d=6,ok=false;const rt=new THREE.Vector3(),up=new THREE.Vector3();
     for(let it=0;it<16;it++){placeAt(tgt,d,e);let x0=9,x1=-9,y0=9,y1=-9;
       for(const p of pts){tmp.copy(p).project(cam);x0=Math.min(x0,tmp.x);x1=Math.max(x1,tmp.x);y0=Math.min(y0,tmp.y);y1=Math.max(y1,tmp.y)}
       const k=Math.max((x1-x0)/2/tw0,(y1-y0)/2/th0),hh=Math.tan(cam.fov*Math.PI/360)*d,hw=hh*cam.aspect;
       rt.set(1,0,0).applyQuaternion(cam.quaternion);up.set(0,1,0).applyQuaternion(cam.quaternion);
+      ok=Math.abs(k-1)<.002&&Math.abs((x0+x1)/2-tcx)<.002&&Math.abs((y0+y1)/2-tcy)<.002;
       tgt.addScaledVector(rt,((x0+x1)/2-tcx)*hw).addScaledVector(up,((y0+y1)/2-tcy)*hh);d*=k}
+    const sure=ok?null:fitSure(pts,e,tw0,th0,tcx,tcy,c0);FITN[sure?1:0]++;if(sure)return sure;
     placeAt(tgt,d,e);return{tgt,d,el:e}}
+  /* the same framing by halving. The camera never turns here (it looks along the same line for any target), so each point has
+     fixed coordinates across (X), up (Y) and toward the camera (Z) from the points' middle c. For a camera distance d, the
+     slide across that centres the framed box is found by halving (the box's middle only moves one way as the camera slides),
+     the same up and down; then d itself by halving, between too near (the box too big) and far enough. */
+  function fitSure(pts,e,tw0,th0,tcx,tcy,c){placeAt(c,6,e);
+    const rt=V(1,0,0).applyQuaternion(cam.quaternion),up=V(0,1,0).applyQuaternion(cam.quaternion),fw=dirOf(e),hT=Math.tan(cam.fov*Math.PI/360),wT=hT*cam.aspect,
+      n=pts.length,X=new Float64Array(n),Y=new Float64Array(n),Z=new Float64Array(n);let zm=-1e9;
+    pts.forEach((p,i)=>{tmp.copy(p).sub(c);X[i]=tmp.dot(rt);Y[i]=tmp.dot(up);Z[i]=tmp.dot(fw);if(Z[i]>zm)zm=Z[i]});
+    const mid=(A,T,t,d)=>{let lo=1e9,hi=-1e9,ext=0;for(let i=0;i<n;i++){const v=A[i]-t*(d-Z[i])*T;if(v<lo)lo=v;if(v>hi)hi=v}
+        for(let it=0;it<30;it++){const a=(lo+hi)/2;let m0=1e9,m1=-1e9;for(let i=0;i<n;i++){const v=(A[i]-a)/((d-Z[i])*T);if(v<m0)m0=v;if(v>m1)m1=v}
+          ext=(m1-m0)/2;if((m0+m1)/2>t)lo=a;else hi=a}
+        return[(lo+hi)/2,ext]},
+      at=d=>{const [a,w]=mid(X,wT,tcx,d),[b,h]=mid(Y,hT,tcy,d);return{a,b,k:Math.max(w/tw0,h/th0)}};
+    let d0=zm+.02,d1=Math.max(6,zm*2+1);while(at(d1).k>1&&d1<400)d1*=2;if(!(at(d1).k<=1)||!(at(d0).k>1))return null;
+    for(let it=0;it<26;it++){const d=Math.sqrt(d0*d1);if(at(d).k>1)d0=d;else d1=d}
+    const d=Math.sqrt(d0*d1),r=at(d),tgt=c.clone().addScaledVector(rt,r.a).addScaledVector(up,r.b);placeAt(tgt,d,e);return{tgt,d,el:e}}
   const hullW=()=>{const m=P.group.matrixWorld;return P.hull.map(p=>p.clone().applyMatrix4(m))};
   const rectOf=(e,p)=>{const r=e.getBoundingClientRect();return[r.left-p,r.top-p,r.right+p,r.bottom+p]};
   /* everything the package keeps clear of: the floating words, the message's place and the buttons */
@@ -627,7 +696,11 @@ function Activity(el,o){
       pivot.quaternion.slerpQuaternions(tw.q0,tw.q1,e);view.tgt.lerpVectors(tw.v0.tgt,tw.v1.tgt,e);view.d=tw.v0.d*Math.pow(tw.v1.d/tw.v0.d,e);view.el=tw.v0.el+(tw.v1.el-tw.v0.el)*e;
       if(t>=1){const f=tw.done;tw=null;if(f)f()}}
     const mv=phStep(dt),fl=floatOn();if(fl)PH.t+=dt;
-    if(tw||mv||!fl||now-PH.drawn>=30){draw();PH.drawn=now}if(tw||mv||fl)kick()}
+    /* how long the last moving picture took: from a frame that drew a turn to the very next frame */
+    if(QL.prev&&!QL.lock&&QSLOW<2){if(QL.skip>0)QL.skip--;else if(QL.buf.push(now-QL.prev)>=12){const m=QL.buf.sort((a,b)=>a-b)[6];QL.buf.length=0;
+      QL.slow=m>36?QL.slow+1:0;if(QL.slow>=2)quality(QSLOW+1)}}
+    const go=tw||mv,dr=go||!fl||now-PH.drawn>=30;
+    if(dr){draw();PH.drawn=now}QL.prev=go&&dr&&!document.hidden?now:0;if(go||fl)kick()}
   /* one step of the physics: the spin that keeps going after a turn by hand (it slows down, as if the air held it), and the
      spring that pushes the package back while pressed and brings it home with a small bounce */
   function phStep(dt){let mv=false;const s=PH.spin;
@@ -641,7 +714,11 @@ function Activity(el,o){
       for(let i=0;i<n;i++){PH.dv+=(-w*w*(PH.dip-tg)-2*z*w*PH.dv)*h;PH.dip+=PH.dv*h}mv=true}
     else{PH.dip=tg;PH.dv=0}
     return mv}
-  function draw(){pivot.updateMatrixWorld(true);place();if(shadow.visible)shadowFit();renderer.render(scene,cam);drawOv()}
+  /* the camera's depth range hugs the package (it lies within P.R of the pivot), so fine layers a fraction of a millimetre apart
+     (a label on a jar, a fold under a carton's roof) never fight for a pixel, on any screen */
+  function depthRange(){const dc=cam.position.length(),R=P.R||2,n=Math.max(.02,Math.floor((dc-R*1.25)*8)/8),f=Math.ceil(dc+R*2.5+1);
+    if(n!==cam.near||f!==cam.far){cam.near=n;cam.far=f;cam.updateProjectionMatrix()}}
+  function draw(){pivot.updateMatrixWorld(true);place();depthRange();if(shadow.visible)shadowFit();ST.touch(P.group,pivot.quaternion);renderer.render(scene,cam);drawOv()}
   function moveTo(q1,v1,dur,done){PH.spin=null;tw={t0:performance.now(),dur:E.still()?0:dur,q0:pivot.quaternion.clone(),q1:q1.clone(),v0:{tgt:view.tgt.clone(),d:view.d,el:view.el},v1,done};kick()}
 
   /* ---------- outlines on the package (layer 3), re-drawn with every frame so they stay on the print while it turns ---------- */
@@ -711,10 +788,13 @@ function Activity(el,o){
 
   /* ---------- a round ---------- */
   function disposePkg(){if(!P)return;pivot.remove(P.group);
-    P.group.traverse(m=>{if(!m.isMesh)return;m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(x=>{if(x.map){const c=x.map.image;x.map.dispose();if(c&&c.getContext){c.width=c.height=0}}x.dispose()})});P=null}
+    P.group.traverse(m=>{if(!m.isMesh)return;m.geometry.dispose();(Array.isArray(m.material)?m.material:[m.material]).forEach(x=>{
+      /* every picture the material holds; a grain (kit3d.js) shares its pixels with the next package, so it keeps them */
+      for(const k of ['map','normalMap','clearcoatNormalMap','roughnessMap','alphaMap']){const t=x[k];if(!t)continue;const c=t.image;t.dispose();if(c&&c.getContext&&!t.userData.shared){c.width=c.height=0}}x.dispose()})});P=null}
   function showRound(){clearTimers();tw=null;PH.spin=null;PH.held=false;PH.dip=PH.dv=0;clearOv();disposePkg();bubble();
-    RD=ROUNDS[round];P=RD.build();P.group.position.y=-P.cy;pivot.add(P.group);P.group.updateMatrix();P.hull=[];
-    P.group.children.forEach(m=>{if(!m.isMesh)return;m.updateMatrix();const a=m.geometry.attributes.position;for(let n=0;n<a.count;n++)P.hull.push(new THREE.Vector3().fromBufferAttribute(a,n).applyMatrix4(m.matrix))});
+    RD=ROUNDS[round];{const t0=performance.now();P=RD.build();built=Math.round(performance.now()-t0)}P.group.position.y=-P.cy;pivot.add(P.group);P.group.updateMatrix();
+    /* the package's outline for the camera (a few hundred outermost points), and the ball that the key light's shadow has to cover */
+    P.hull=K3.hull(P.group);P.R=Math.max(...P.hull.map(p=>Math.hypot(p.x,p.y-P.cy,p.z)));ST.fit(P.R);
     Object.assign(S,{step:'find',zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,qSay:null,amber:null,chunkOv:[],dashOv:[],src:null,zoomInfo:'',
       full:false,missed:false,sup:false,mark:'',vready:0});S.tick++;
     const st=RD.rd.start;S.q=st?new THREE.Quaternion().setFromEuler(new THREE.Euler(st[0],st[1],0,'YXZ')):new THREE.Quaternion();
@@ -745,7 +825,7 @@ function Activity(el,o){
   const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),fingers=new Map();let ptr=null,pinch=null;
   root.addEventListener('gesturestart',e=>e.preventDefault());
   function hitAt(x,y){PH.off=true;place();ndc.set(x/W()*2-1,-(y/H())*2+1);ray.setFromCamera(ndc,cam);let r=null;
-    for(const h of ray.intersectObjects(P.group.children,false)){const face=h.object.userData.face;if(face===undefined)continue;if(!face||!h.uv){r={face:''};break}const f=P.faces[face];r={face,px:h.uv.x*f.W,py:(1-h.uv.y)*f.H};break}
+    for(const h of ray.intersectObjects(P.group.children,false)){const face=h.object.userData.face;if(face===undefined)continue;if(!face||!h.uv){r={face:''};break}const f=P.faces[face];r={face,px:(h.uv.x%1+1)%1*f.W,py:(1-h.uv.y)*f.H};break}
     PH.off=false;place();return r}
   function near(list,h,mm){let best=null,bd=1e9;for(const r of list){if(r.face!==h.face)continue;const k=P.faces[r.face].k,b=r.box,dx=Math.max(b[0]-h.px,0,h.px-b[2]),dy=Math.max(b[1]-h.py,0,h.py-b[3]),d=Math.hypot(dx,dy);if(d<=mm*k&&d<bd){bd=d;best=r}}return best}
   stage.addEventListener('pointerdown',e=>{if(!P||!doneV.hidden)return;let caught=false;if(e.isPrimary){fingers.clear();pinch=null;ptr=null;root.classList.remove('dragging');caught=!!PH.spin;PH.spin=null;PH.held=false}
@@ -1040,7 +1120,7 @@ function Activity(el,o){
   addEventListener('resize',onResize);const onVis=()=>kick();document.addEventListener('visibilitychange',onVis);
   function exit(){stop();onExit()}
   function destroy(){alive=false;clearTimers();clearTimeout(rzT);if(raf)cancelAnimationFrame(raf);raf=0;tw=null;removeEventListener('keydown',onKey);removeEventListener('resize',onResize);document.removeEventListener('visibilitychange',onVis);PH.spin=null;PH.held=false;
-    stopBig();E.quiet();clearOv();disposePkg();if(flyEl){flyEl.remove();flyEl=null}shadow.geometry.dispose();shadow.material.dispose();shTex.dispose();
+    stopBig();E.quiet();clearOv();disposePkg();if(flyEl){flyEl.remove();flyEl=null}shadow.geometry.dispose();shadow.material.dispose();shTex.dispose();ST.dispose();
     try{renderer.dispose();renderer.forceContextLoss()}catch(e){}const c=renderer.domElement;c.width=c.height=1;el.innerHTML=''}
 
   /* ---------- for tests only: read the state and find where things are on the screen ---------- */
@@ -1064,6 +1144,20 @@ function Activity(el,o){
       pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);
       /* the fewest turns among the poses that show it nearly as well as the best one */
       const top=Math.max(...best.map(o=>o.d));return best.filter(o=>o.d>=top-.04).sort((a,b)=>Math.abs(a.k)+Math.abs(a.t)-Math.abs(b.k)-Math.abs(b.t))[0]},
+    /* what the last picture cost: its triangles and draw calls (the shadow's too when it was drawn again), what the graphics card
+       holds now, how long this package took to make (ms), the picture's size in pixels, and how many camera fits settled the
+       quick way and how many needed the sure way (fitSure) since the activity started */
+    info(){const m=renderer.info;return{tris:m.render.triangles,calls:m.render.calls,geo:m.memory.geometries,tex:m.memory.textures,build:built,px:renderer.domElement.width+'x'+renderer.domElement.height,fits:FITN.slice()}},
+    /* the look's step (0 = full, 1, 2 = plainest). quality(n) holds it there: a slow test machine would step down by itself */
+    quality(n){if(n!=null){QL.lock=true;quality(n);if(P)draw()}return QSLOW},
+    /* turn the package straight to a pose (tip rx, spin ry, in radians), with no move */
+    pose(rx,ry){if(!P)return false;tw=null;PH.spin=null;S.q.setFromEuler(new THREE.Euler(rx,ry,0,'YXZ'));pivot.quaternion.copy(S.q);setView(poseView(S.q,S.zoom));draw();return true},
+    /* the package's outline on the screen (px: left, top, right, bottom) as the camera would frame it at a pose, with no picture
+       drawn and nothing changed: for checking the fit at every pose and screen size */
+    fitAt(rx,ry){if(!P)return null;const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,0,'YXZ')),q0=pivot.quaternion.clone(),keep=[S.zoomFocus,S.fitInfo,S.fitDbg],n0=FITN[1],v=poseView(q,false),fit=S.fitInfo;
+      pivot.quaternion.copy(q);pivot.updateMatrixWorld(true);placeAt(v.tgt,v.d,v.el);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      hullW().forEach(p=>{const s=scr(p);x0=Math.min(x0,s[0]);x1=Math.max(x1,s[0]);y0=Math.min(y0,s[1]);y1=Math.max(y1,s[1])});
+      pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);place();[S.zoomFocus,S.fitInfo,S.fitDbg]=keep;return{box:[x0,y0,x1,y1].map(Math.round),d:+v.d.toFixed(3),sure:FITN[1]-n0,fit}},
     spin,tip,closer,rounds:()=>ROUNDS.map(r=>({date:r.ds,pk:r.rd.pk,spot:r.rd.spot,good:r.good,day:r.date?r.date.getFullYear()+'-'+p2(r.date.getMonth()+1)+'-'+p2(r.date.getDate()):null,choices:r.choices.map(c=>(c.ok?'*':'')+c.t)})),
     faces:()=>P?Object.fromEntries(Object.entries(P.faces).map(([n,f])=>[n,f.c.toDataURL('image/png')])):null};
   return{begin(){startLevel(level,round)},destroy,test}
@@ -1075,6 +1169,7 @@ function fail(el,o){el.innerHTML='<div class="fd-root fd-err"><p>Find the Date! 
   const b=el.querySelector('button');if(b)b.onclick=()=>{el.innerHTML='';if(o&&typeof o.onExit==='function')o.onExit()}}
 async function start(el,o){stop();const my=++token;o=o||{};if(!el)return;el.innerHTML='';
   try{if(!THREE)THREE=await import(new URL('three.module.min.js',HERE).href);
+    if(!K3){K3=await import(new URL('kit3d.js?v=1',HERE).href);K3.init(THREE)}
     if(+o.level===3)await loadL4();
     await Promise.all(['800 40px "Baloo 2"','700 40px "Baloo 2"','900 20px Nunito','800 20px Nunito','700 20px Nunito'].map(f=>document.fonts.load(f).catch(()=>null)).concat(loadArt()))}
   catch(e){console.error('Find the Date:',e);if(my===token)fail(el,o);return}

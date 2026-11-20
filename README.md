@@ -26,9 +26,12 @@ The level pick also opens Find the Date! (folder `find/`, Levels 1 to 4): turn a
 printed (step 1, "Find it"), then check it against today (step 2, "Check it": Still good or Expired?). Levels 1 and 2
 check it on this year's months and this month's wall calendar, with a today card; Levels 3 and 4 on today's date on the
 phone, and the calendar comes in with Easier or after a wrong answer. It was built as its own part and plugs in with one call,
-`FindTheDate.start(section, {level, round, today, rand, onExit})`, and `FindTheDate.stop()`. The packages are drawn in
-code with a few Canva colored-pencil pictures on them (`find/art/`, from classroom-assets group find-packages, listed in
-`assets.lock.json`); a finger or the mouse can push, spin and catch a package (off with less motion). three.js r160 is
+`FindTheDate.start(section, {level, round, today, rand, onExit})`, and `FindTheDate.stop()`. The packages are modelled in
+code (`find/kit3d.js`, 11/20: a soft studio light, materials by kind such as varnished board, paper labels, clear plastic
+and steel, and rounded shapes; rigid packages only) with a few Canva colored-pencil pictures on them (`find/art/`, from
+classroom-assets group find-packages, listed in `assets.lock.json`). When a screen draws the full look too slowly while a
+package turns, the look steps down by itself (fewer pixels, then no shadow on the package). A finger or the mouse can
+push, spin and catch a package (off with less motion). three.js r160 is
 self-hosted in `find/` with its licence. Testing address: `?screen=find&level=1&round=1` (with `&today=` and `&seed=`
 as usual).
 

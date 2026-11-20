@@ -242,20 +242,17 @@
    ],
    "ref": "soup-bowl.webp",
    "screens": "Find the Date!: the Simmer & Spoon soup can (front of the label), Levels 1 to 3"
-  },
-  "find/art/turkey.webp": {
-   "asset": "find-pkg.turkey",
-   "version": 1,
-   "lib": "images/find-packages/web/turkey.webp",
-   "sha256": "048f162b08f23a3eb86ebab45022ef7e8cd7216d56465e955d3c84686a90164c",
-   "px": [
-    600,
-    450
-   ],
-   "ref": "turkey.webp",
-   "screens": "Find the Date!: the Hilltop Grocer deli turkey tray (the slices under the film), Level 4 round 2"
   }
  },
  "inline": [],
- "removed": []
+ "removed": [
+  {
+   "path": "find/art/turkey.webp",
+   "asset": "find-pkg.turkey",
+   "version": 1,
+   "sha256": "048f162b08f23a3eb86ebab45022ef7e8cd7216d56465e955d3c84686a90164c",
+   "approved": "Alex, 2026-11-20 04:13 UTC: rigid packages only (jars, bottles, boxes, vacuum sealed cheese), no meat in a tray",
+   "why": "Level 4 round 2's deli turkey tray left Find the Date; the round is now a vacuum sealed cheese block with no picture. The picture stays in the library."
+  }
+ ]
 }
