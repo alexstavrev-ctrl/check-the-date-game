@@ -1,10 +1,11 @@
 /* ============================================================================================================
-   Find the Date! (Claude's part of Check the Date!): find the date on a package you turn, then say it.
+   Find the Date! (Claude's part of Check the Date!): find the date on a package you turn, then check it (is it still good?).
    The look is the approved viz dev, find-the-date-vizdev/v3 (approved 11/19/2026): the package takes about 93% of the
    screen height; the words float over the scene UNDER the package; the buttons sit on top; rounded-square turn
    buttons in one panel in the bottom-right corner; the Look for chips stacked in a column.
    It reuses the game's look (css/ff-engine.css + css/game.css): tokens, --u, and the classes
-   .name .lvl .tool .nav .next .choice (with their right and wrong states) and .lvdone.
+   .name .lvl .tool .nav .next .choice (with their right and wrong states) and .lvdone; Check it uses its wall calendar
+   (.l1 .cal .calhead .wk .days .d) and its phone (.phonewrap .phone .scr .pdate .ptime .picons).
    Every rule is scoped under #find. Sizes are in the game's --u.
    ============================================================================================================ */
 
@@ -115,4 +116,105 @@
    animation it would play the game's deal-in again when the press spring ends. */
 #find .fd-l4 .choice.fd-a.amber{animation:shake .45s}
 
-@media (prefers-reduced-motion:reduce){#find .fd-ov .fd-glow,#find .fd-ov .fd-check>g,#find .fd-ov .fd-in,#find .fd-bubble,#find .fd-hand svg{animation:none!important}}
+/* ---------- Check it (approved 11/19, layout A): Still good or Expired, with today's date to look at ---------- */
+/* the left column: today's date under the prompt, as wide as the prompt */
+#find .fd-today{align-self:stretch;box-sizing:border-box;background:#fff;border-radius:calc(var(--u)*1.8);box-shadow:0 calc(var(--u)*.6) 0 rgba(18,48,92,.16);
+  padding:calc(var(--u)*1.2) calc(var(--u)*1.5) calc(var(--u)*1.3)}
+#find .fd-trow{display:flex;align-items:center;justify-content:space-between;gap:calc(var(--u)*1)}
+#find .fd-tlab{font-family:var(--body);font-weight:900;font-size:calc(var(--u)*1.6);letter-spacing:.08em;color:var(--blue)}
+#find .fd-tnum{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.4);line-height:1;background:var(--blue);color:#fff;border-radius:calc(var(--u)*.9);padding:calc(var(--u)*.45) calc(var(--u)*.9) calc(var(--u)*.25)}
+#find .fd-tday{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.7);line-height:1.08;margin-top:calc(var(--u)*.5)}
+/* the right quarter: a plain panel the colour of the page hides the package under the strip (no frame round the months) */
+#find .fd-calbg{position:absolute;z-index:3;top:0;bottom:0;right:0;width:calc(25vw + var(--u)*1.5);pointer-events:none;opacity:0;transition:opacity .3s ease-out;
+  background:radial-gradient(ellipse 58% 78% at 50% 54%,#fff 0%,#F3F9FF 42%,var(--sky) 88%);background-size:100vw 100%;background-position:right center;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 calc(var(--u)*3));mask-image:linear-gradient(90deg,transparent,#000 calc(var(--u)*3))}
+#find .fd-root.cal .fd-calbg{opacity:1}
+/* the strip: at most a quarter of the screen wide and the full height; this year's months on top, this month under them */
+#find .fd-cal{position:absolute;z-index:4;top:calc(var(--u)*1.5);bottom:calc(var(--u)*1.5);right:calc(var(--u)*1.5);width:calc(25vw - var(--u)*1.5);display:flex;flex-direction:column;gap:calc(var(--u)*1.6);color:var(--ink);
+  --U0:var(--u);--mf:calc(var(--u)*4.4);--ring:calc(var(--u)*.55);--mku:calc(var(--u)*.66);--past:#E4E8EE;--pastbar:#97A3B4}
+#find .fd-mblock{flex:1.62 1 0;display:flex;flex-direction:column;min-height:0}
+#find .fd-year{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.2);color:var(--soft);margin:0 0 calc(var(--u)*.5) calc(var(--u)*.3);line-height:1}
+#find .fd-months{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:calc(var(--u)*1);min-height:0}
+/* a month is a little calendar page: the big calendar's red bar with the month's name, its number under it, the same size and lighter */
+#find .fd-m{position:relative;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;min-height:calc(var(--u)*7);border-radius:calc(var(--u)*1.3);background:#fff;
+  box-shadow:0 calc(var(--u)*.5) 0 rgba(18,48,92,.14);font-family:var(--display);font-weight:800;line-height:1;transition:box-shadow .25s}
+#find .fd-bar{position:relative;display:block;background:var(--stop);color:#fff;text-align:center;font-family:var(--display);font-weight:800;font-size:var(--mf);letter-spacing:.04em;line-height:1;
+  padding:calc(var(--u)*.95) 0 calc(var(--u)*.5);border-radius:calc(var(--u)*1.3) calc(var(--u)*1.3) 0 0}
+#find .fd-bar i{position:relative;z-index:3;font-style:normal}
+#find .fd-m b{position:relative;z-index:3;flex:1;display:grid;place-items:center;padding-bottom:calc(var(--u)*.3);font-size:var(--mf);font-weight:500;line-height:1}
+/* past months: the whole page grey (its bar too) and crossed out corner to corner, like the past days (--xa, --xw from find.js) */
+#find .fd-m.past{background:var(--past);box-shadow:none;color:#5F7391}
+#find .fd-m.past .fd-bar{background:var(--pastbar)}
+#find .fd-m.past::before,#find .fd-m.past::after{content:"";position:absolute;z-index:2;left:50%;top:50%;width:var(--xw,100%);height:calc(var(--u)*.5);background:var(--stop);opacity:.55;border-radius:99px}
+#find .fd-m.past::before{transform:translate(-50%,-50%) rotate(var(--xa,42deg))}
+#find .fd-m.past::after{transform:translate(-50%,-50%) rotate(calc(var(--xa,42deg)*-1))}
+/* this month: outlined in blue, the way today is outlined in the day grid */
+#find .fd-m.now{background:#fff;color:var(--blue)}
+#find .fd-m.now::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;box-shadow:inset 0 0 0 var(--ring) var(--blue);pointer-events:none}
+/* this month's calendar fills the rest of the height (the game's .l1 wall calendar, at .66 of its size): the day rows share it */
+#find .fd-big{flex:1 1 0;min-height:0;display:flex;flex-direction:column;--u:var(--mku)}
+#find .fd-big .l1,#find .fd-big .cal{flex:1;display:flex;flex-direction:column;min-height:0}
+#find .fd-big .days{flex:1;grid-auto-rows:1fr;min-height:0}
+#find .fd-big .l1 .d,#find .fd-big .cal.six.l1c .d{height:auto}
+#find .fd-big .calhead{font-size:var(--mf)}
+#find .fd-big .calhead::before,#find .fd-big .calhead::after{background:#fff}
+/* the date on the calendar: Easier (the game's sun yellow), or after an answer red (expired) or green (still good) */
+#find .fd-cal .mark{--mk:var(--sun)}
+#find .fd-cal .mark.bad{--mk:var(--stop)}
+#find .fd-cal .mark.good{--mk:var(--go)}
+#find .fd-m.mark{z-index:4;box-shadow:0 0 0 calc(var(--U0)*.6) var(--mk)}
+#find .fd-big .d.mark{z-index:4;box-shadow:inset 0 0 0 calc(var(--U0)*.5) var(--mk)}
+#find .fd-flag{position:absolute;z-index:5;top:calc(var(--U0)*-1.4);left:50%;translate:-50% 0;white-space:nowrap;font-family:var(--body);font-weight:900;font-size:calc(var(--U0)*1.35);line-height:1.25;letter-spacing:0;
+  color:#fff;background:var(--mk);border-radius:99px;padding:calc(var(--U0)*.15) calc(var(--U0)*.7);transform-origin:50% 100%;animation:stampin .35s cubic-bezier(.3,1.7,.5,1) backwards}
+#find .mark:not(.bad):not(.good) .fd-flag{color:var(--ink)}
+/* Levels 3 and 4: the game's phone, top right */
+#find .fd-phone{position:absolute;z-index:4;right:calc(var(--u)*3);top:calc(var(--u)*11);width:calc(var(--u)*25)}
+#find .fd-phone .phonewrap{width:100%}
+/* laid out unseen while the camera glides in */
+#find .fd-root .pre{visibility:hidden}
+/* the buttons and the message make room for the strip; the answer card sits in the middle of the space left */
+#find .fd-tools,#find .fd-next{transition:right .35s cubic-bezier(.2,1.2,.4,1)}
+#find .fd-root.cal .fd-tools,#find .fd-root.cal .fd-next{right:calc(25vw + var(--u)*1.2)}
+#find .fd-root.chk .fd-hudR{display:none}
+#find .fd-root.cal{--fd-rr:calc(25vw + var(--u)*1.5)}
+#find .fd-root.ph{--fd-rr:calc(var(--u)*32.5)}
+#find .fd-root.chk .fd-answers{left:calc(50% - var(--fd-rr,0px)/2);gap:calc(var(--u)*1.1);padding:calc(var(--u)*1.3) calc(var(--u)*1.8) calc(var(--u)*1.7);transition:left .4s cubic-bezier(.2,1.2,.4,1)}
+/* the two answers: the game's verdict colours, green Still good and red Expired, each with its mark */
+#find .fd-yn{display:flex;gap:calc(var(--u)*1.8)}
+#find .fd-yn .choice{display:flex;align-items:center;gap:calc(var(--u)*1.3);min-width:calc(var(--u)*25);box-sizing:border-box;padding:calc(var(--u)*1.1) calc(var(--u)*1.85);
+  font-family:var(--display);font-weight:800;font-size:calc(var(--u)*3.6);line-height:1;white-space:nowrap}
+#find .fd-yn .ic{flex:none;display:grid;place-items:center;width:calc(var(--u)*6.4);height:calc(var(--u)*6.4);border-radius:50%;color:#fff}
+#find .fd-yn .ic svg{width:58%;height:58%}
+#find .fd-yn .good{color:var(--go)}
+#find .fd-yn .good .ic{background:var(--go)}
+#find .fd-yn .bad{color:var(--stop)}
+#find .fd-yn .bad .ic{background:var(--stop)}
+/* a wrong answer turns amber (the approved try-again picture) */
+#find .fd-yn .choice.amber{background:#FFF4E0;box-shadow:inset 0 0 0 calc(var(--u)*.45) #F0A030,0 calc(var(--u)*.6) 0 #E5A54A}
+/* the coaching line, in the card over the answers */
+#find .fd-why{font-family:var(--body);font-weight:900;font-size:calc(var(--u)*2.1);color:#8A5300;text-align:center;line-height:1.25;margin:0}
+#find .fd-why:empty{display:none}
+#find .fd-why b.stop{color:var(--stop)}
+#find .fd-why b.go{color:var(--go)}
+#find .fd-why.go{color:var(--ink)}
+#find .fd-why .t{font-family:var(--display);font-weight:800;font-size:calc(var(--u)*2.6);color:var(--go)}
+/* the deal-in (tactile, as everything in the game): today, the months one by one, this month, the card, then the answers.
+   The answers stop dealing once in (.dealt), so the engine's press spring, the right answer's pop and the wrong answer's shake play */
+@keyframes fd-deal{from{opacity:0;transform:translateY(calc(var(--u)*5)) scale(.9)}}
+@keyframes fd-pop{from{opacity:0;transform:scale(.35)}}
+@keyframes fd-card{from{opacity:0;transform:translateX(-50%) translateY(calc(var(--u)*5)) scale(.92)}}
+#find .fd-root.go-in .fd-pop{animation:fd-deal .45s cubic-bezier(.2,1.3,.4,1) backwards;animation-delay:var(--d,0ms)}
+#find .fd-root.go-in .fd-m.fd-pop{animation:fd-pop .38s cubic-bezier(.3,1.7,.5,1) backwards;animation-delay:var(--d,0ms)}
+#find .fd-root.go-in .fd-phone.fd-pop{animation:fd-deal .5s cubic-bezier(.2,1.3,.4,1) backwards}
+#find .fd-root.go-in .fd-answers.fd-pop{animation:fd-card .45s cubic-bezier(.2,1.3,.4,1) backwards;animation-delay:var(--d,0ms)}
+#find .fd-yn .choice{animation:none}
+#find .fd-root.go-in .fd-yn .choice:not(.dealt){animation:fd-deal .45s cubic-bezier(.2,1.3,.4,1) backwards;animation-delay:var(--d,0ms)}
+#find .fd-yn .choice.dealt.sprg{animation:sprg .34s cubic-bezier(.3,1.6,.5,1)}
+#find .fd-yn .choice.dealt.yes{animation:pop .55s cubic-bezier(.3,1.5,.5,1),glow 1s ease-out}
+#find .fd-yn .choice.dealt.amber{animation:shake .45s}
+#find .fd-root.fd-still .fd-pop,#find .fd-root.fd-still .fd-answers.fd-pop,#find .fd-root.fd-still .fd-yn .choice,#find .fd-root.fd-still .fd-flag{animation:none!important}
+#find .fd-root.fd-still .fd-calbg,#find .fd-root.fd-still .fd-tools,#find .fd-root.fd-still .fd-next,#find .fd-root.fd-still .fd-answers{transition:none}
+
+@media (prefers-reduced-motion:reduce){#find .fd-ov .fd-glow,#find .fd-ov .fd-check>g,#find .fd-ov .fd-in,#find .fd-bubble,#find .fd-hand svg,
+  #find .fd-pop,#find .fd-answers.fd-pop,#find .fd-yn .choice,#find .fd-flag{animation:none!important}
+  #find .fd-calbg,#find .fd-tools,#find .fd-next,#find .fd-answers{transition:none}}

@@ -10,7 +10,12 @@
      6 gallon of milk     NOV 29 / 06-4321                                 no clue words (06-4321 is the dairy's code)
    The prints above are the approved pictures (made for 11/19/2026). In the game every date and number comes from
    `today` and `rand`: never new Date() with no arguments, never Math.random().
-   Date rules: no date equal to today. Every date to check is after today. PACKED ON is in the past, as on a real label.
+   Date rules: no date equal to today. PACKED ON is in the past, as on a real label.
+   Check it ("Is it still good?"): every round carries until (the last day it is good) and say (the date in words). Each game
+   makes 2 or 3 of the rounds expired, picked with rand from the peanut butter, juice, crackers, spaghetti and milk; the turkey
+   is always still good, because its lesson is that PACKED ON (in the past) is not the date to check. A month-and-year print
+   is good until the last day of that month. The milk prints no year: the student takes the date nearest today (a gallon
+   of milk is good for days, not months), which is the date's own year here, since the milk's date is 2 to 14 days away.
    Say it: the wrong choices come from real mistakes (the time read as a date, the year read as the day, the year and
    the day swapped, the PACKED ON date, the dairy code read as June). Each wrong choice has src: 'date' when it misreads
    the date itself (the engine shows the year / month / day tags), or the line it came from ('time' or 'code': a chunk k
@@ -82,11 +87,16 @@ export function rounds(kit, {today, rand}) {
   const md = (m, day) => `${MONTH[m]} ${day}`;
   const mdYear = (m, day, y) => `${MONTH[m]} ${day}, ${y}`;
   const iso = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+  /* which rounds are expired today (Check it): 2 or 3 of peanut butter (0), juice (2), crackers (3), spaghetti (4), milk (5) */
+  const gone = new Set(); { const pool = [0, 2, 3, 4, 5], k = ri(2, 3);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    pool.slice(0, k).forEach(i => gone.add(i)); }
   const time24 = () => `${ri(13, 23)}:${p2(ri(0, 59))}`;               /* 13:00 to 23:59, can't be read as a month */
   /* three choices: the right one first, then the wrong ones in order of preference; duplicates and look-alikes of the
      right answer are skipped; the order is shuffled with rand */
   /* a choice must name a real day (no February 30); a choice with no year may be February 29 */
-  const isToday = t => { const x = t.match(/^([A-Z][a-z]+) (\d{1,2}), (\d{4})$/); return !!x && MONTH.indexOf(x[1]) === t0.getMonth() && +x[2] === t0.getDate() && +x[3] === t0.getFullYear(); };
+  /* a choice names today: the full date, or today's month and day when the choice has no year (the milk, the spaghetti) */
+  const isToday = t => { const x = t.match(/^([A-Z][a-z]+) (\d{1,2})(?:, (\d{4}))?$/); return !!x && MONTH.indexOf(x[1]) === t0.getMonth() && +x[2] === t0.getDate() && (!x[3] || +x[3] === t0.getFullYear()); };
   const real = t => { const x = t.match(/^([A-Z][a-z]+) (\d{1,2})(?:, (\d{4}))?$/); if (!x) return true; const mi = MONTH.indexOf(x[1]), d = +x[2], y = x[3] ? +x[3] : 2028, dt = new Date(y, mi, d); return mi >= 0 && d >= 1 && dt.getMonth() === mi && dt.getDate() === d; };
   function choices(right, wrong) {
     const key = t => t.toLowerCase().replace(/,? \d{4}$/, ''), seen = new Set([right.t.toLowerCase()]), near = key(right.t);
@@ -168,7 +178,7 @@ export function rounds(kit, {today, rand}) {
         The date is black inkjet on the back label, right under the bar code, in 2.5 mm letters. New: a time that looks like a date.
      ====================================================================================================== */
   {
-    const d = add(ri(150, 420)), m = d.getMonth(), day = d.getDate(), Y = d.getFullYear();
+    const d = add(gone.has(0) ? -ri(20, 300) : ri(150, 420)), m = d.getMonth(), day = d.getDate(), Y = d.getFullYear();
     let tm = ri(10, 28); while (tm === day || p2(tm) === yy(d)) tm = ri(10, 28);
     const time = `${p2(m + 1)}:${p2(tm)}`, line = 'L' + ri(1, 9), code = String(ri(1000, 9899));
     const dateText = `${MON[m]} ${p2(day)} ${Y}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'day', i: 4, n: 2}, {t: 'year', i: 7, n: 4}];
@@ -229,8 +239,8 @@ export function rounds(kit, {today, rand}) {
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM((lidY + lidH) / 2), el: .22, noun: 'peanut butter', spot: 'print', where: 'on the back'});
     };
-    R4.push({name: 'Peanut butter', newThing: 'a time that looks like a date', build, kw: 'BEST IF USED BY', clue: '<b>BEST IF USED BY</b>', dateText, date: iso(d),
-      parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-43, 30, -43], [25, 62, 0], [[44, 30, 0], [44, 62, 0]], .05, Math.PI, 'strip'),
+    R4.push({name: 'Peanut butter', newThing: 'a time that looks like a date', build, kw: 'BEST IF USED BY', clue: '<b>BEST IF USED BY</b>', dateText, date: iso(d), until: iso(d), say: full(d),
+      parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-26, 30, -44], [26, 62, -30], null, .05, Math.PI, 'strip'),
       choices: choices({t: full(d), coach: `<b>${time}</b> is only the time.`}, [
         {t: mdYear(m, tm, Y), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
         {t: mdYear(m, Number(yy(d)), Y), coach: `<b>${Y}</b> is the <b>year</b>.`, src: 'date'},
@@ -287,7 +297,7 @@ export function rounds(kit, {today, rand}) {
       reg(pkg, 'label', 'name', bName);
       return finish(pkg, {cy: MM(H) / 2, el: .22, noun: 'turkey', spot: 'label', where: 'on the label'});
     };
-    R4.push({name: 'Deli turkey', newThing: 'two dates on one label', build, kw: 'USE BY', clue: '<b>USE BY</b>', dateText, date: iso(use), packed: iso(pack),
+    R4.push({name: 'Deli turkey', newThing: 'two dates on one label', build, kw: 'USE BY', clue: '<b>USE BY</b>', dateText, date: iso(use), packed: iso(pack), until: iso(use), say: full(use),
       parts, month: MON[use.getMonth()], prompt: FIND, start: [.35, 0], close: framing([-115, 26, -82.5], [-27, 26, -13.5], null, Math.PI / 2 - .52, 0),
       choices: choices({t: full(use), coach: '<b>USE BY</b> is the date to check.'}, [
         {t: full(pack), coach: 'That is the day it was <b>packed</b>.', src: 'packed on'},
@@ -302,7 +312,8 @@ export function rounds(kit, {today, rand}) {
         The date is inkjet on the back of the neck, above the label, 3.2 mm letters. New: no slashes (EXP 112826 means 11 / 28 / 26).
      ====================================================================================================== */
   {
-    let d = add(ri(9, 40)); for (let n = 0; n < 40 && p2(d.getDate()) === yy(d); n++) d = add(ri(9, 40));
+    const ojDay = () => add(gone.has(2) ? -ri(3, 40) : ri(9, 40));
+    let d = ojDay(); for (let n = 0; n < 40 && p2(d.getDate()) === yy(d); n++) d = ojDay();
     const m = d.getMonth(), day = d.getDate(), digits = `${p2(m + 1)}${p2(day)}${yy(d)}`, time = time24(), line = 'L' + ri(1, 6), parts = [{t: 'month', i: 0, n: 2}, {t: 'day', i: 2, n: 2}, {t: 'year', i: 4, n: 2}];
     const build = () => {
       const pkg = kit.newPkg('juice'), GREEN = '#2E8B3E', ORANGE = '#EE7410';
@@ -354,7 +365,7 @@ export function rounds(kit, {today, rand}) {
       return finish(pkg, {cy: MM((capY + capH) / 2), el: .26, noun: 'juice', spot: 'print', where: 'on the neck'});
     };
     const sw = `${p2(day)}${p2(m + 1)}${yy(d)}`;
-    R4.push({name: 'Orange juice', newThing: 'no slashes', build, kw: 'EXP', clue: '<b>EXP</b>', dateText: digits, date: iso(d),
+    R4.push({name: 'Orange juice', newThing: 'no slashes', build, kw: 'EXP', clue: '<b>EXP</b>', dateText: digits, date: iso(d), until: iso(d), say: full(d),
       parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-40, 185, -33], [40, 249, 0], null, 0, Math.PI),
       choices: choices({t: full(d), coach: `<b>${digits}</b> means ${p2(m + 1)} / ${p2(day)} / ${yy(d)}.`}, [
         {t: mdYear(m, Number(yy(d)), d.getFullYear()), coach: `<b>${yy(d)}</b> is the <b>year</b>. Read it in twos: <b>${p2(m + 1)} / ${p2(day)} / ${yy(d)}</b>.`},
@@ -370,8 +381,9 @@ export function rounds(kit, {today, rand}) {
      ====================================================================================================== */
   {
     let d = null;
-    for (let n = 0; n < 200 && !d; n++) { const c = add(ri(60, 300)); if (CA[c.getMonth()] && c.getDate() >= 10 && c.getDate() <= 28 && p2(c.getDate()) !== yy(c)) d = c; }
-    if (!d) { let c = add(60); while (!(CA[c.getMonth()] && c.getDate() >= 10 && c.getDate() <= 28 && p2(c.getDate()) !== yy(c))) c = new Date(c.getFullYear(), c.getMonth(), c.getDate() + 1); d = c; }
+    const cg = gone.has(3) ? -1 : 1, fitsCA = c => CA[c.getMonth()] && c.getDate() >= 10 && c.getDate() <= 28 && p2(c.getDate()) !== yy(c);
+    for (let n = 0; n < 200 && !d; n++) { const c = add(cg * ri(cg > 0 ? 60 : 30, 300)); if (fitsCA(c)) d = c; }
+    if (!d) { let c = add(cg * (cg > 0 ? 60 : 30)); while (!fitsCA(c)) c = new Date(c.getFullYear(), c.getMonth(), c.getDate() + cg); d = c; }
     const m = d.getMonth(), day = d.getDate(), dateText = `${yy(d)} ${CA[m]} ${p2(day)}`, parts = [{t: 'year', i: 0, n: 2}, {t: 'month', i: 3, n: 2}, {t: 'day', i: 6, n: 2}];
     let hh = ri(1, 12); while (hh === m + 1) hh = ri(1, 12);
     const mm = ri(10, 28), time = `${p2(hh)}:${p2(mm)}`, line = 'L' + ri(1, 6), code = String(ri(1000, 9899));
@@ -418,8 +430,8 @@ export function rounds(kit, {today, rand}) {
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM(H) / 2, el: .22, noun: 'crackers', spot: 'bottom', where: 'on the bottom'});
     };
-    R4.push({name: 'Crackers from Canada', newThing: `the year comes first, and ${CA[m]} = ${MONTH[m]}`, build, kw: 'BEST BEFORE', clue: '<b>BEST BEFORE</b>', dateText, date: iso(d),
-      parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-80, 0, -11], [32, 0, 23], null, -(Math.PI / 2 + .48), 0),
+    R4.push({name: 'Crackers from Canada', newThing: `the year comes first, and ${CA[m]} = ${MONTH[m]}`, build, kw: 'BEST BEFORE', clue: '<b>BEST BEFORE</b>', dateText, date: iso(d), until: iso(d), say: full(d),
+      parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-66, 0, -9], [24, 0, 17], null, -(Math.PI / 2 + .48), 0),
       choices: choices({t: full(d), coach: 'Here the <b>year</b> comes first.'}, [
         {t: `${MONTH[m]} ${Number(yy(d))}, 20${p2(day)}`, coach: 'Here the <b>year</b> comes first.'},
         {t: mdYear(hh - 1, mm, d.getFullYear()), coach: `<b>${time}</b> is a <b>time</b>.`, src: 'time'},
@@ -433,7 +445,7 @@ export function rounds(kit, {today, rand}) {
         code and time. New: month and year only, no day.
      ====================================================================================================== */
   {
-    const k0 = t0.getMonth() + ri(10, 24), Y = t0.getFullYear() + Math.floor(k0 / 12), m = k0 % 12, dateText = `${MON[m]} ${Y}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'year', i: 4, n: 4}];
+    const k0 = t0.getMonth() + (gone.has(4) ? -ri(1, 8) : ri(10, 24)), Y = t0.getFullYear() + Math.floor(k0 / 12), m = ((k0 % 12) + 12) % 12, dateText = `${MON[m]} ${Y}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'year', i: 4, n: 4}];
     const code = 'L' + ri(1000, 9899) + 'ABCDEFGH'[ri(0, 7)], time = time24();
     const build = () => {
       const W = 68, H = 262, D = 38, pkg = kit.newPkg('spaghetti'), Q = kit.boxQuads(MM(W), MM(H), MM(D)), C = {}, BLUE = '#1F4FA8', RED = '#D3312B', CREAM = '#FFF4DE';
@@ -473,7 +485,7 @@ export function rounds(kit, {today, rand}) {
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM(H) / 2, el: .22, noun: 'spaghetti', spot: 'top', where: 'on the top end'});
     };
-    R4.push({name: 'Spaghetti', newThing: 'month and year only', build, kw: 'BEST BY', clue: '<b>BEST BY</b>', dateText, date: `${Y}-${p2(m + 1)}`,
+    R4.push({name: 'Spaghetti', newThing: 'month and year only', build, kw: 'BEST BY', clue: '<b>BEST BY</b>', dateText, date: `${Y}-${p2(m + 1)}`, until: iso(new Date(Y, m + 1, 0)), say: `${MONTH[m]} ${Y}`,
       parts, month: MON[m], prompt: FIND, start: [0, 0], close: framing([-34, 262, -19], [34, 262, 19], null, Math.PI / 2 - .5, 0),
       choices: choices({t: `${MONTH[m]} ${Y}`, coach: 'No day here. Say the <b>month</b> and the <b>year</b>.'}, [
         {t: md(m, Number(String(Y).slice(0, 2))), coach: `<b>${Y}</b> is the <b>year</b>. There is no day.`},
@@ -489,7 +501,7 @@ export function rounds(kit, {today, rand}) {
         New: no clue words at all.
      ====================================================================================================== */
   {
-    const d = add(ri(5, 14)), m = d.getMonth(), day = d.getDate(), dateText = `${MON[m]} ${p2(day)}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'day', i: 4, n: 2}];
+    const d = add(gone.has(5) ? -ri(2, 6) : ri(5, 14)), m = d.getMonth(), day = d.getDate(), dateText = `${MON[m]} ${p2(day)}`, parts = [{t: 'month', i: 0, n: 3}, {t: 'day', i: 4, n: 2}];
     /* the dairy's code: 06 (California), then the plant number; its first two digits must not make the right date */
     let d1 = ri(1, 9); while (d1 === day || d1 === 6) d1 = ri(1, 9);
     let d2 = ri(1, 9); while ((d1 - 1 === m && d2 === day) || d1 - 1 === 5 && d2 === d1) d2 = ri(1, 9);
@@ -572,8 +584,8 @@ export function rounds(kit, {today, rand}) {
       inkParts(pkg, parts);
       return finish(pkg, {cy: MM((capY + capH) / 2), el: .3, noun: 'milk', spot: 'print', where: 'on the neck'});
     };
-    R4.push({name: 'Milk', newThing: 'no clue words at all', build, kw: null, clue: 'the <b>month</b>', dateText, date: iso(d),
-      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-78, 175, 0], [40, 236, 60], null, .1, 0),
+    R4.push({name: 'Milk', newThing: 'no clue words at all', build, kw: null, clue: 'the <b>month</b>', dateText, date: iso(d), until: iso(d), say: md(m, day),
+      parts, month: MON[m], prompt: FIND, start: [0, Math.PI], close: framing([-41, 190, 0], [41, 244, 26], null, .1, 0),
       choices: choices({t: md(m, day), coach: `<b>${code}</b> is the dairy's code.`}, [
         {t: md(5, d1), coach: `<b>${code}</b> is the <b>dairy's code</b>, not June.`, src: 'code'},
         {t: md(m, 6), coach: `<b>06</b> is part of the <b>dairy's code</b>.`, src: 'code'},

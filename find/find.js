@@ -1,10 +1,12 @@
 /* ============================================================================================================
-   Find the Date! (Claude's part of Check the Date!): turn a package, find its date, then say the date.
+   Find the Date! (Claude's part of Check the Date!): turn a package, find its date, then check it: is it still good?
+   (Level 4 still says the date until its rounds give the day each date is good through: README, Level 4 and Check it.)
    The look is the approved viz dev, find-the-date-vizdev/v3 (approved 11/19/2026): the package takes about 93% of the
    screen height, the words float over the scene UNDER the package, the buttons sit on top, rounded-square turn
    buttons in the bottom-right corner, the Look for chips stacked in a column.
    It reuses the Fun Friday engine by name (js/ff-engine.js through the game: sounds, tactile buttons, confetti, party,
-   the game-show win, the narrator) and the game's look (css/ff-engine.css + css/game.css). Nothing is copied.
+   the game-show win, the narrator) and the game's look (css/ff-engine.css + css/game.css: also its wall calendar and phone
+   classes for Check it). Nothing is copied.
    It needs: js/ff-engine.js, js/winfx-astra.js, js/dotmatrix.js (DOTFONT) and js/game.js loaded first, and
    find/three.module.min.js (three.js 0.160.0, loaded with import() inside start()) and the package pictures in find/art/
    (classroom-assets group find-packages, loaded in start() with the fonts).
@@ -30,12 +32,14 @@ const E={
   quiet(){try{if(typeof hush==='function')hush()}catch(e){}},
   star(){try{if(typeof P==='function')return P('star','⭐')}catch(e){}return '⭐'},
   starArt(){try{if(typeof HAVE!=='undefined')return HAVE.has('star')}catch(e){}return false},
+  clock(){try{if(typeof clockNow==='function')return clockNow()}catch(e){}const n=new Date();return (n.getHours()%12||12)+':'+String(n.getMinutes()).padStart(2,'0')},
   font(){if(typeof DOTFONT!=='undefined')return DOTFONT;throw new Error('Find the Date needs js/dotmatrix.js (DOTFONT)')}
 };
 
 /* ---------- small helpers ---------- */
 const MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const MONTH=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const p2=n=>String(n).padStart(2,'0');
 const MM=v=>v/100;                                   /* mm -> scene units (1 unit = 100 mm) */
 const SLOPE=Math.hypot(95/2,40);                     /* the milk carton's gable panel, in mm */
@@ -50,6 +54,11 @@ const I={ccw:SV('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/>'),cw:SV
 const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="#12305C" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20"/></svg>';
 const HAND='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M18 26V10a3 3 0 0 1 6 0v12V8a3 3 0 0 1 6 0v14V10a3 3 0 0 1 6 0v14-8a3 3 0 0 1 6 0v14c0 9-6 14-13 14h-2c-5 0-8-2-11-6l-7-9a3 3 0 0 1 4.5-4z" fill="#fff" stroke="#12305C" stroke-width="2.6" stroke-linejoin="round"/></svg>';
 const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="#1F6FD6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+/* Check it: the marks on the two answers (the approved still-good pictures) and the icons on the phone (the game's phone) */
+const OKI='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const XI='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+const PICONS='<div class="picons"><span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M8 2h8v5l-2 3v12h-4V10L8 7z"/></svg></span>'+
+  '<span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg></span></div>';
 
 /* ---------- drawing helpers: everything on a package is drawn in real millimetres. Claude's placeholder art in the
    colored-pencil style (the viz dev's); the final package art comes from Astra or Canva, through classroom-assets. ---------- */
@@ -359,21 +368,20 @@ const BUILD={milk,can,cereal};
    L1 spin only, a month word stamped on the package, one price sticker to look past;
    L2 spin and tip, inkjet BEST BY / USE BY / EXP on a bottom or a top, with a factory code under it;
    L3 drag it any way, inkjet lines that mix the date with a time, a line number and a factory code.
-   Every round is a different package and a different place for the date (general-case teaching). Round 1 is the one an adult does with the student (the v3 pictures show no pill for it, so there is none).
-   errs = the predicted mistakes that become the wrong Say it choices, most likely first. ---------- */
+   Every round is a different package and a different place for the date (general-case teaching). Round 1 is the one an adult does with the student (the v3 pictures show no pill for it, so there is none). ---------- */
 const LEVELS=[
   {name:'Level 1',cross:false,drag:false,rounds:[
-    {pk:'milk',spot:'roofB',fmt:'stamp',price:'$3.48',errs:['month','price']},
-    {pk:'cereal',spot:'left',fmt:'stamp',price:'$4.97',errs:['month','price']},
-    {pk:'can',spot:'label',fmt:'stamp',price:'$1.29',errs:['month','price']}]},
+    {pk:'milk',spot:'roofB',fmt:'stamp',price:'$3.48'},
+    {pk:'cereal',spot:'left',fmt:'stamp',price:'$4.97'},
+    {pk:'can',spot:'label',fmt:'stamp',price:'$1.29'}]},
   {name:'Level 2',cross:true,drag:false,rounds:[
-    {pk:'can',spot:'bottom',kw:'BEST BY',fmt:'MON DD YYYY',price:'$1.29',errs:['year','codeday']},
-    {pk:'cereal',spot:'top',kw:'USE BY',fmt:'MON DD YYYY',price:'$4.97',errs:['year','code']},
-    {pk:'milk',spot:'bottom',kw:'EXP',fmt:'MON DD YYYY',price:'$3.48',errs:['year','code']}]},
+    {pk:'can',spot:'bottom',kw:'BEST BY',fmt:'MON DD YYYY',price:'$1.29'},
+    {pk:'cereal',spot:'top',kw:'USE BY',fmt:'MON DD YYYY',price:'$4.97'},
+    {pk:'milk',spot:'bottom',kw:'EXP',fmt:'MON DD YYYY',price:'$3.48'}]},
   {name:'Level 3',cross:true,drag:true,rounds:[
-    {pk:'cereal',spot:'top',kw:'BEST IF USED BY',fmt:'DDMONYYYY',price:'$4.97',errs:['code','time'],start:[.32,-.6]},
-    {pk:'can',spot:'bottom',kw:'BEST BY',fmt:'MM/DD/YY',price:'$1.29',errs:['time','year'],start:[.17,.35]},
-    {pk:'milk',spot:'roofB',kw:'EXP',fmt:'DDMONYY',price:'$3.48',errs:['code','time'],start:[0,.35]}]},
+    {pk:'cereal',spot:'top',kw:'BEST IF USED BY',fmt:'DDMONYYYY',price:'$4.97',start:[.32,-.6]},
+    {pk:'can',spot:'bottom',kw:'BEST BY',fmt:'MM/DD/YY',price:'$1.29',start:[.17,.35]},
+    {pk:'milk',spot:'roofB',kw:'EXP',fmt:'DDMONYY',price:'$3.48',start:[0,.35]}]},
   /* Level 4, messy dates (find-the-date-hard-vizdev, approved 11/19 18:53): six rounds from find/level4.js, loaded only when picked */
   {name:'Level 4',cross:true,drag:true,l4:true,rounds:[]}
 ];
@@ -393,39 +401,29 @@ function printSpec(L,rd,ds,code,tm){
     case 'milk/roofB/2':return{type:'ink',h:3.5,x:95/2,y0:SLOPE/2-5.5,lead:7.9,align:'center',lines:[[W,Dt,{t:tm,k:'time'}],[{t:'P2',k:'line'},{t:code,k:'code'}]]};
   }
   throw new Error('no print for '+rd.pk+'/'+rd.spot)}
-/* the three Say it choices: the date, then two wrong ones made from the mistakes students really make */
-function sayChoices(L,rd,d,x,shuffle){const m=d.getMonth(),day=d.getDate(),Y=d.getFullYear();
-  const say=(mm,dd)=>L===0?MONTH[mm]+' '+dd:MONTH[mm]+' '+dd+', '+Y,right=say(m,day),c=[];
-  const add=(t,coach)=>{if(c.length<2&&t!==right&&!c.some(q=>q.t===t))c.push({t,coach})};
-  for(const e of[...rd.errs,'month','year','time','code','next']){
-    if(e==='month')add(say((m+11)%12,day),'<b>'+MON[m]+'</b> is short for <b>'+MONTH[m]+'</b>.');
-    if(e==='next')add(say((m+1)%12,day),'<b>'+MON[m]+'</b> is short for <b>'+MONTH[m]+'</b>.');
-    if(e==='price'&&rd.price){const dg=+rd.price.replace(/\D/g,'')[0];if(dg>0)add(say(m,dg),'<b>'+dg+'</b> is from the price, <b>'+rd.price+'</b>.')}
-    if(e==='year'&&L>0){const two=rd.fmt==='MM/DD/YY'||rd.fmt==='DDMONYY',yd=two?Y%100:(day===20?26:20);
-      if(yd!==day&&yd>=1&&yd<=31)add(say(m,yd),two?'<b>'+p2(yd)+'</b> is the year, <b>'+Y+'</b>.':'<b>'+yd+'</b> is part of the year, <b>'+Y+'</b>.')}
-    if(e==='code'&&L>0)add(say(x.cm-1,x.cd),'<b>'+x.code+'</b> is the factory code.');
-    if(e==='codeday'&&L>0)add(say(m,x.hh),'<b>'+x.hh+'</b> is part of the factory code.');
-    if(e==='time'&&L>0)add(say(m,x.hh),'<b>'+x.tm+'</b> is the time it was made.');
-  }
-  if(c.length<2)return null;
-  return shuffle([{t:right,ok:true,coach:''},...c])}
+/* Check it (approved 11/19): every level mixes dates that are still good with dates that are past, at least one of each, never
+   today. Levels 1 and 2 keep the date in this year, because their calendar shows this year (and Level 1 prints no year); Level 1
+   takes another month than today's when it can, so the month pages answer it. Level 3 (the phone) reaches into the last or the
+   next year only when this year has no day left for its answer. On the first or last days of a year a round that cannot have
+   its answer takes the other one. */
 function makeRounds(L,today,rnd){if(LEVELS[L].l4)return rounds4(today,rnd);const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
   const shuffle=a=>{a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(rnd()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a};
-  return LEVELS[L].rounds.map((rd,idx)=>{
+  const RS=LEVELS[L].rounds,want=shuffle([true,false].concat(RS.slice(2).map(()=>rnd()<.5)));   /* true = still good */
+  const Y=today.getFullYear(),M=today.getMonth(),span=[[3,45],[2,45],[1,75]][L];
+  const pool=good=>{const all=[];for(let k=span[0];k<=span[1];k++)all.push(new Date(Y,M,today.getDate()+(good?k:-k)));
+    return [all.filter(d=>d.getFullYear()===Y&&(L>0||d.getMonth()!==M)),all.filter(d=>d.getFullYear()===Y)].concat(L===2?[all]:[]).find(t=>t.length)||[]};
+  return RS.map((rd,idx)=>{let good=want[idx],days=pool(good);if(!days.length){good=!good;days=pool(good)}
     for(let n=0;n<80;n++){
-      const off=L===0?ri(3,24):ri(5,45),d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+off);
-      if(d.getTime()===today.getTime())continue;                          /* never the same day as today */
-      const day=d.getDate();
+      const d=days[Math.floor(rnd()*days.length)],day=d.getDate();
       /* round 1 keeps the approved viz dev's codes (14:32, 0522) when they fit this date */
       let hh=idx===0&&n===0?14:ri(6,22),mi=idx===0&&n===0?32:ri(0,59),cm=idx===0&&n===0?5:ri(1,12),cd=idx===0&&n===0?22:ri(1,28);
       if(hh===day)continue;
       if(cm-1===d.getMonth()||cm-1===today.getMonth())continue;          /* a factory code never reads as this date or as today */
-      const tm=p2(hh)+':'+p2(mi),code=p2(cm)+p2(cd),ds=dateText(rd.fmt,d);
-      const choices=sayChoices(L,rd,d,{hh,tm,cm,cd,code},shuffle);if(!choices)continue;
-      const pr={};pr[rd.spot]=printSpec(L,rd,ds,code,tm);
-      return {L,idx,rd,date:d,ds,pr,choices,price:rd.price,
+      const tm=p2(hh)+':'+p2(mi),code=p2(cm)+p2(cd),ds=dateText(rd.fmt,d),pr={};pr[rd.spot]=printSpec(L,rd,ds,code,tm);
+      return {L,idx,rd,date:d,ds,pr,good,price:rd.price,choices:[{t:'Still good',ok:good,k:'good'},{t:'Expired',ok:!good,k:'bad'}],
+        say:MONTH[d.getMonth()]+' '+day+(L===0?'':', '+d.getFullYear()),            /* the date in words, for the coaching line */
         clue:L===0?'<b>'+MON[d.getMonth()]+'</b>':'<b>'+rd.kw+'</b>',
-        spoken:choices.find(q=>q.ok).t,build:()=>BUILD[rd.pk](pr,rd.price)};
+        spoken:good?'Still good':'Expired',build:()=>BUILD[rd.pk](pr,rd.price)};
     }
     throw new Error('could not make round '+(idx+1));
   })}
@@ -444,10 +442,17 @@ async function loadL4(){if(!L4MOD){const r=await Promise.all([import(new URL('le
        trim = the solid box in the 600 px file). They load here, before any build(), so kit.art() can draw them */
     const A=r[0].art;if(A&&typeof A==='object'){for(const n of Object.keys(A))if(!ART_FILES[n]&&A[n]&&A[n].file){ART_FILES[n]=A[n].file;ART_TRIM[n]=A[n].trim||[0,0,600,600]}await loadArt()}
     L4MOD=r[0]}return L4MOD}
+/* Level 4 checks its dates too (Check it, with the phone) once level4.js gives every round until: the last day the food is good
+   ('YYYY-MM-DD'; for a month and a year only, the last day of that month), never today. say (optional) is the date in words for
+   the coaching line, else the round's right Say it choice. Until then Level 4 says the date (Say it). */
+const dayOf=v=>{if(v instanceof Date&&!isNaN(v))return new Date(v.getFullYear(),v.getMonth(),v.getDate());const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof v==='string'?v:'');return m?new Date(+m[1],+m[2]-1,+m[3]):null};
 function rounds4(today,rnd){const kit=KIT(),rs=L4MOD.rounds(kit,{today,rand:rnd});
+  const chk=rs.length>0&&rs.every(r=>{const d=dayOf(r.until);return d&&d.getTime()!==today.getTime()});
   return rs.map((r,idx)=>{const right=r.choices.find(c=>c.ok);if(!right)throw new Error('Level 4 round '+(idx+1)+' has no right answer');
-    return{L:3,idx,rd:{start:r.start||null,kw:r.kw||null},date:null,ds:r.dateText,choices:r.choices.map(c=>({t:c.t,ok:!!c.ok,coach:c.coach||'',src:c.ok?'':(c.src||'date')})),
-      clue:r.clue||'the <b>date</b>',spoken:right.t,parts:r.parts||null,month:r.month||'',prompt:r.prompt||'Find the date<br><b>to check.</b>',
+    const d=chk?dayOf(r.until):null,good=chk?d>today:null;
+    return{L:3,idx,rd:{start:r.start||null,kw:r.kw||null},date:d,good,say:chk?String(r.say||right.t):'',ds:r.dateText,
+      choices:chk?[{t:'Still good',ok:good,k:'good'},{t:'Expired',ok:!good,k:'bad'}]:r.choices.map(c=>({t:c.t,ok:!!c.ok,coach:c.coach||'',src:c.ok?'':(c.src||'date')})),
+      clue:r.clue||'the <b>date</b>',spoken:chk?(good?'Still good':'Expired'):right.t,parts:r.parts||null,month:r.month||'',prompt:r.prompt||'Find the date<br><b>to check.</b>',
       close:r.close&&Array.isArray(r.close.pts)&&r.close.pts.length?r.close:null,build:()=>r.build(kit)}})}
 const WHAT={price:'the <b>price</b>',upc:'the <b>bar code</b>',nutrition:'the <b>nutrition facts</b>',weight:'the <b>weight</b>',size:'<b>how much is inside</b>',
   name:'the <b>name</b> of the food',code:'the <b>factory code</b>',time:'the <b>time</b> it was made',timecode:'the <b>time</b> and the <b>factory code</b>',line:'the <b>line number</b>'};
@@ -482,17 +487,19 @@ function Activity(el,o){
   const today=(o.today instanceof Date&&!isNaN(o.today))?new Date(o.today.getFullYear(),o.today.getMonth(),o.today.getDate()):(()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())})();
   const rnd=typeof o.rand==='function'?o.rand:Math.random;
   const onExit=typeof o.onExit==='function'?o.onExit:()=>{};
-  let alive=true,level=clampI(o.level,0,LEVELS.length-1),round=clampI(o.round,0,LEVELS[clampI(o.level,0,LEVELS.length-1)].l4?5:2),ROUNDS=[],RD=null,P=null,won=new Set(),timers=[],raf=0,tw=null,bigWinOn=false,lastU=0;
-  const S={step:'find',q:new THREE.Quaternion(),qSay:null,zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null};
+  let CHK=false,alive=true,level=clampI(o.level,0,LEVELS.length-1),round=clampI(o.round,0,LEVELS[clampI(o.level,0,LEVELS.length-1)].l4?5:2),ROUNDS=[],RD=null,P=null,won=new Set(),timers=[],raf=0,tw=null,bigWinOn=false,lastU=0;
+  const S={step:'find',q:new THREE.Quaternion(),qSay:null,zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,full:false,missed:false,sup:false,mark:'',vready:0,tick:0};
   const later=(ms,f)=>{const t=setTimeout(()=>{timers=timers.filter(x=>x!==t);if(alive)f()},ms);timers.push(t);return t};
   const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
 
-  /* ---------- the page: words (layer 1) < package (2) < outlines (3) < buttons (4) < level done (5) ---------- */
+  /* ---------- the page: words (layer 1) < package (2) < outlines (3) < buttons (4) < level done (5). Check it adds today's date under
+     the prompt (words), and on the right the calendar strip over a plain panel that hides the package under it, or the phone ---------- */
   el.innerHTML='<div class="fd-root">'+
     '<div class="fd-stripL"><span class="name">Find the Date!</span><span class="lvl"></span><span class="fd-steps"></span></div>'+
-    '<div class="fd-hudL"><div class="stamps fd-stamps" aria-label="Rounds"></div><h1 class="fd-prompt"></h1><div class="fd-look"></div><div class="fd-inset" hidden><canvas></canvas><svg aria-hidden="true"></svg><span class="fd-cap2"></span></div></div>'+
+    '<div class="fd-hudL"><div class="stamps fd-stamps" aria-label="Rounds"></div><h1 class="fd-prompt"></h1><div class="fd-today" hidden></div><div class="fd-look"></div><div class="fd-inset" hidden><canvas></canvas><svg aria-hidden="true"></svg><span class="fd-cap2"></span></div></div>'+
     '<div class="fd-hudR" aria-live="polite"></div>'+
-    '<div class="fd-stage" role="img"></div><svg class="fd-ov" aria-hidden="true"></svg>'+
+    '<div class="fd-stage" role="img"></div><div class="fd-calbg" aria-hidden="true"></div><svg class="fd-ov" aria-hidden="true"></svg>'+
+    '<div class="fd-cal" role="img" hidden></div><div class="fd-phone" hidden></div>'+
     '<div class="fd-tools"><button class="tool fd-easy" aria-pressed="false">Easier</button><button class="tool fd-skip">Skip</button><button class="tool snd" aria-pressed="'+E.loud()+'">Sound</button></div>'+
     '<button class="nav fd-back">Back</button><div class="fd-ctl"></div>'+
     '<div class="fd-answers wait" hidden><p class="fd-qq">What does the date say?</p><div class="fd-ans"></div></div>'+
@@ -503,7 +510,8 @@ function Activity(el,o){
   const q=s=>el.querySelector(s);
   const root=q('.fd-root'),stripL=q('.fd-stripL'),lvlEl=q('.lvl'),stampsEl=q('.fd-stamps'),stepsEl=q('.fd-steps'),hudL=q('.fd-hudL'),prompt=q('.fd-prompt'),look=q('.fd-look'),
     inset=q('.fd-inset'),hudR=q('.fd-hudR'),stage=q('.fd-stage'),ov=q('.fd-ov'),tools=q('.fd-tools'),easyB=q('.fd-easy'),skipB=q('.fd-skip'),sndB=q('.snd'),
-    backB=q('.fd-back'),ctl=q('.fd-ctl'),answers=q('.fd-answers'),qqEl=q('.fd-qq'),ansRow=q('.fd-ans'),nextB=q('.fd-next'),hand=q('.fd-hand'),doneV=q('.fd-done');
+    backB=q('.fd-back'),ctl=q('.fd-ctl'),answers=q('.fd-answers'),qqEl=q('.fd-qq'),ansRow=q('.fd-ans'),nextB=q('.fd-next'),hand=q('.fd-hand'),doneV=q('.fd-done'),
+    todayEl=q('.fd-today'),calEl=q('.fd-cal'),phoneEl=q('.fd-phone');
 
   /* ---------- the 3D scene (the viz dev's camera, lights and floor shadow) ---------- */
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
@@ -675,7 +683,7 @@ function Activity(el,o){
   function productBox(){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;hullW().forEach(p=>{const [x,y]=scr(p);x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)});return[x0,y0,x1,y1]}
 
   /* ---------- the floating words (layer 1) and the buttons (layer 4), in the viz dev's places ---------- */
-  function steps(n){stepsEl.innerHTML='<span class="fd-step '+(n>1?'done':'now')+'">1 Find it</span><span class="fd-sep" aria-hidden="true">›</span><span class="fd-step'+(n===2?' now':'')+'">2 Say it</span>'}
+  function steps(n){stepsEl.innerHTML='<span class="fd-step '+(n>1?'done':'now')+'">1 Find it</span><span class="fd-sep" aria-hidden="true">›</span><span class="fd-step'+(n===2?' now':'')+'">2 '+(CHK?'Check it':'Say it')+'</span>'}
   /* the round stamps (the game's .stamp look): a number per round, the round on now in blue, a star for each round won;
      a right answer sends the engine's star flying from the answer to its stamp (the engine's flyStar, drawn here because
      the engine's own one is tied to the game's strip) */
@@ -707,9 +715,11 @@ function Activity(el,o){
   function showRound(){clearTimers();tw=null;PH.spin=null;PH.held=false;PH.dip=PH.dv=0;clearOv();disposePkg();bubble();
     RD=ROUNDS[round];P=RD.build();P.group.position.y=-P.cy;pivot.add(P.group);P.group.updateMatrix();P.hull=[];
     P.group.children.forEach(m=>{if(!m.isMesh)return;m.updateMatrix();const a=m.geometry.attributes.position;for(let n=0;n<a.count;n++)P.hull.push(new THREE.Vector3().fromBufferAttribute(a,n).applyMatrix4(m.matrix))});
-    Object.assign(S,{step:'find',zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,qSay:null,amber:null,chunkOv:[],dashOv:[],src:null,zoomInfo:''});
+    Object.assign(S,{step:'find',zoom:false,easy:false,misses:0,found:null,dateTapped:false,dragged:false,ans:null,qSay:null,amber:null,chunkOv:[],dashOv:[],src:null,zoomInfo:'',
+      full:false,missed:false,sup:false,mark:'',vready:0});S.tick++;
     const st=RD.rd.start;S.q=st?new THREE.Quaternion().setFromEuler(new THREE.Euler(st[0],st[1],0,'YXZ')):new THREE.Quaternion();
-    root.classList.remove('say','zoomed','won');root.classList.toggle('drag',!!LEVELS[level].drag);root.classList.toggle('fd-l4',!!LEVELS[level].l4);
+    root.classList.remove('say','zoomed','won','chk','cal','ph','go-in');root.classList.toggle('drag',!!LEVELS[level].drag);
+    [todayEl,calEl,phoneEl].forEach(e=>{e.hidden=true;e.innerHTML=''});answers.classList.remove('fd-pop');ansRow.className='fd-ans';root.classList.toggle('fd-l4',!!LEVELS[level].l4);
     lvlEl.textContent=LEVELS[level].name;steps(1);stampRow();
     prompt.innerHTML=LEVELS[level].l4?RD.prompt:level<2?'Turn the '+P.noun+'.<br><b>Find the date.</b>':'Find the date<br><b>for shoppers.</b>';
     lookFind();inset.hidden=true;ctlBuild();ctl.hidden=false;answers.hidden=true;answers.classList.add('wait');ansRow.innerHTML='';qqEl.className='fd-qq';qqEl.textContent='What does the date say?';nextB.hidden=true;skipB.hidden=false;
@@ -718,7 +728,7 @@ function Activity(el,o){
     E.line('fd-q',prompt.innerHTML,450)}
   function goRound(n){E.quiet();if(n<0){exit();return}if(n>=ROUNDS.length){showDone();return}round=n;showRound();E.snd('whoosh')}
   function startLevel(n,r){if(LEVELS[n].l4&&!L4MOD){loadL4().then(()=>{if(alive)startLevel(n,r)},e=>{console.error('Find the Date: Level 4 could not load.',e);doneV.querySelector('.fd-nextlv').hidden=true});return}
-    level=n;ROUNDS=makeRounds(n,today,rnd);won=new Set();round=Math.min(r||0,ROUNDS.length-1);doneV.hidden=true;stopBig();showRound()}
+    level=n;ROUNDS=makeRounds(n,today,rnd);CHK=ROUNDS.length>0&&ROUNDS.every(r=>typeof r.good==='boolean');won=new Set();round=Math.min(r||0,ROUNDS.length-1);doneV.hidden=true;stopBig();showRound()}
 
   /* ---------- turning the package: spin around its own up axis, tip toward or away from the class ---------- */
   const AX=V(1,0,0),AY=V(0,1,0);
@@ -785,7 +795,11 @@ function Activity(el,o){
     const it=outline({face:ln.face,box:dc?dc.box:b,style:'go',check:true,pad:l4?.6:1.4,chkOut:l4});
     bubble('go','You found it!','The date is '+whereHTML(P.where)+'.');E.snd('ding');handHint();
     later(60,()=>{if(it.chkAt)E.boom(it.chkAt[0],it.chkAt[1],28);else if(it.rect)E.boom(it.rect[2],it.rect[1],28)});later(1900,toSay)}
-  function setEasy(on){S.easy=on;easyB.setAttribute('aria-pressed',String(on));clearOv(it=>it.style==='glow');ansRow.querySelectorAll('.soft').forEach(b=>b.classList.remove('soft'));if(!on)return;
+  function setEasy(on){S.easy=on;easyB.setAttribute('aria-pressed',String(on));clearOv(it=>it.style==='glow');ansRow.querySelectorAll('.soft').forEach(b=>b.classList.remove('soft'));
+    /* Check it: Easier points at the date on the calendar (on Levels 3 and 4 it first brings the calendar in for the phone; off, the
+       phone comes back). Once an answer was wrong, the calendar and its mark stay. Before the supports are in, toSay reads S.easy */
+    if(CHK&&S.step!=='find'){if(S.sup&&!S.missed){if(level>=2&&on!==S.full){if(on)supFull();else supBack()}markDate(on?'hint':'')}return}
+    if(!on)return;
     if(S.step==='find'){const f=P.faces[P.spot];
       if(f.ring)outline({face:P.spot,ring:true,style:'glow',pad:.2});
       else if(f.curved){const c=P.chunks.find(q=>q.kind==='date').box,k=f.k;outline({face:P.spot,box:[c[0]-14*k,c[1]-10*k,c[2]+14*k,c[3]+10*k],style:'glow',pad:.2})}
@@ -824,7 +838,10 @@ function Activity(el,o){
     return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(Rt,Ut,T).multiply(new THREE.Matrix4().makeBasis(fr.r,fr.u,fr.n).transpose()))}
   function sayView(qq){const q0=pivot.quaternion.clone();pivot.quaternion.copy(qq);pivot.updateMatrixWorld(true);
     const U=E.u(),f=P.faces[P.spot],h=P.letter*f.k,cs=P.chunks.filter(c=>c.face===P.spot),C=LEVELS[level].l4&&RD.close;
-    const hl=hudL.getBoundingClientRect(),st=stripL.getBoundingClientRect(),tl=tools.getBoundingClientRect(),an=answers.getBoundingClientRect(),w=W(),h2=H();
+    const hl=hudL.getBoundingClientRect(),st=stripL.getBoundingClientRect(),tl=tools.getBoundingClientRect(),w=W(),h2=H();
+    /* the answer card's top (its layout box, so a card still dealing in counts where it lands); Check it keeps room for the
+       two-line coaching line that grows the card upward, and keeps the print clear of the calendar strip or the phone */
+    const an={top:answers.hidden?h2:answers.offsetTop-(CHK?U*6.6:0)},sr=chkR();
     let L,R,T,B,pts,v;
     /* the date's letter height on the screen, in px */
     const dc=cs.find(c=>c.kind==='date')||cs[0],lpx=()=>{const x=(dc.box[0]+dc.box[2])/2,y=(dc.box[1]+dc.box[3])/2,
@@ -832,10 +849,10 @@ function Activity(el,o){
     if(C){/* Level 4: the round's own framing (level4.js close: points in mm round the print, seen at its pose), in .92 of the space the
          words leave free, as in the approved Level 4 pictures (the messy-dates README, rule 5) */
       const bu=hudR.querySelector('.fd-bubble'),br=bu?bu.getBoundingClientRect():null;
-      L=-1+2*((C.clear==='strip'?Math.max(hl.right,st.right):hl.right)+U*2)/w;R=1-2*(U*2)/w;T=1-2*Math.max(st.bottom+U*1.2,br?br.bottom+U*1.6:0)/h2;B=1-2*(an.top-U*1.6)/h2;
+      L=-1+2*((C.clear==='strip'?Math.max(hl.right,st.right):hl.right)+U*2)/w;R=1-2*(U*2+sr)/w;T=1-2*Math.max(st.bottom+U*1.2,br?br.bottom+U*1.6:0)/h2;B=1-2*(an.top-U*1.6)/h2;
       pts=C.pts.map(p=>P.group.localToWorld(V(MM(p[0]),MM(p[1]),MM(p[2]))));v=fitCam(pts,.22,(R-L)/2*.92,(T-B)/2*.92,(L+R)/2,(B+T)/2);S.sayInfo='level 4 framing, letter '+(lpx()/h2*100).toFixed(1)+'%'}
     else{const b=[Math.min(...cs.map(c=>c.box[0]))-3*h,Math.min(...cs.map(c=>c.box[1]))-1.5*h,Math.max(...cs.map(c=>c.box[2]))+6.25*h,Math.max(...cs.map(c=>c.box[3]))+1.5*h];
-      L=-1+2*(hl.right+U*2)/w;R=1-2*(U*2)/w;T=1-2*(Math.max(st.bottom,tl.bottom)+U)/h2;B=-1+2*(h2-an.top+U*1.5)/h2;
+      L=-1+2*(hl.right+U*2)/w;R=1-2*(U*2+sr)/w;T=1-2*(Math.max(st.bottom,tl.bottom)+U)/h2;B=-1+2*(h2-an.top+U*1.5)/h2;
       pts=boxW({face:P.spot,box:b});const tw0=(R-L)/2*.9,th0=(T-B)/2*.9;v=fitCam(pts,.22,tw0,th0,(L+R)/2,(B+T)/2);
       /* never closer than the v3 close look: its date letters are 5.4% of the screen height (a big stamp would fill the screen) */
       const lp=lpx(),cap=.054*h2;
@@ -858,14 +875,16 @@ function Activity(el,o){
     const was={tgt:view.tgt.clone(),d:view.d,el:view.el};
     setView(poseView(S.q,false));shadow.visible=false;draw();snapInset();
     root.classList.add('say');root.classList.remove('zoomed');S.zoom=false;ctl.hidden=true;handHint();steps(2);clearOv();S.amber=null;bubble();
-    prompt.innerHTML=level===0?'Say the <b>date</b>.':'Tap the <b>date</b>.<br>Then say it.';
-    look.innerHTML='<span class="fd-lab">'+EYE+'Close look</span>';inset.hidden=false;
-    S.ans=RD.choices;ansRow.innerHTML=ansHTML();answers.hidden=false;answers.classList.add('wait');qqEl.className='fd-qq';qqEl.textContent='What does the date say?';
+    look.innerHTML='<span class="fd-lab">'+EYE+'Close look</span>';inset.hidden=false;S.ans=RD.choices;
+    if(CHK){S.full=level>=2&&S.easy;prompt.innerHTML=chkPrompt();supLay();ansRow.className='fd-ans fd-yn';ansRow.innerHTML=vHTML();qqEl.className='fd-qq fd-why';qqEl.innerHTML=''}
+    else{prompt.innerHTML=level===0?'Say the <b>date</b>.':'Tap the <b>date</b>.<br>Then say it.';ansRow.innerHTML=ansHTML();qqEl.className='fd-qq';qqEl.textContent='What does the date say?'}
+    answers.hidden=false;answers.classList.add('wait');
     const C=LEVELS[level].l4&&RD.close;S.qSay=C?new THREE.Quaternion().setFromEuler(new THREE.Euler(C.rx||0,C.ry||0,0,'YXZ')):closePose(P.chunks.find(c=>c.kind==='date'));const v=sayView(S.qSay);
     setView(was);draw();E.snd('whoosh');
     moveTo(S.qSay,v,700,()=>{S.step='say';S.chunkOv=P.chunks.filter(c=>c.face===P.spot).map(c=>outline({face:c.face,box:c.box,style:'dash',pad:.9}));
-      if(LEVELS[level].l4)srcRegs().forEach(r=>S.chunkOv.push(outline({face:r.face,box:r.box,style:'dash',pad:.9})));
-      if(level===0)dateFound(true);else if(S.easy)setEasy(true);E.line('fd-q',prompt.innerHTML,200)})}
+      if(LEVELS[level].l4&&!CHK)srcRegs().forEach(r=>S.chunkOv.push(outline({face:r.face,box:r.box,style:'dash',pad:.9})));
+      /* Check it: the date found in step 1 is marked here by itself, then the supports and the answers pop in */
+      if(CHK){dateFound(true);supPop()}else if(level===0)dateFound(true);else if(S.easy)setEasy(true);E.line('fd-q',prompt.innerHTML,200)})}
   /* the date is found in the close look: every piece of the print gets its name; the answers deal in */
   function dateFound(auto){S.dateTapped=true;clearOv();S.amber=null;S.dashOv=[];const cs=P.chunks.filter(c=>c.face===P.spot),nl=P.nlines||1,l4=!!LEVELS[level].l4;
     cs.forEach(c=>{const isD=c.kind==='date';let side,gap;
@@ -873,6 +892,7 @@ function Activity(el,o){
       else{const row=cs.filter(x=>x.line===c.line),last=row[row.length-1]===c;side=nl===1?'right':c.line===nl-1?'below':c.line===0?(last?'right':'above'):'right'}
       const it=outline({face:c.face,box:c.box,style:isD?'go':'dash',check:isD,pad:.9,tag:c.tag||TAG[c.kind]||'',side,gap,tagCls:isD?'go':''});it.ch=c;S.dashOv.push(it)});
     if(l4)srcRegs().forEach(r=>{const it=outline({face:r.face,box:r.box,style:'dash',pad:.9,tag:r.what,side:'left'});it.rg=r;S.dashOv.push(it)});
+    if(CHK)return;
     if(!auto){if(LEVELS[level].l4)bubble();else bubble('go','That is the date!','Now say it.');E.snd('ding')}
     answers.classList.remove('wait');ansRow.innerHTML=ansHTML();bindAns();if(S.easy)setEasy(true)}
   function tapSay(x,y){if(S.dateTapped)return;const h=hitAt(x,y);if(!h||!h.face)return;unOutline(S.amber);S.amber=null;const l4=!!LEVELS[level].l4,br=l4?'<br>':' ';
@@ -885,12 +905,8 @@ function Activity(el,o){
     S.amber=outline({face:c.face,box:c.box,style:'amber',pad:.9});
     bubble('amber',c.kind==='words'?'Close!':'Not that one.',c.coach?c.coach+br+'Tap the <b>date</b>.':(c.kind==='words'?'<b>'+c.t+'</b> comes before the date.'+br+'Tap the date.':'That is '+WHAT[c.kind]+'.'+br+'Tap the <b>date</b>.'));
     E.snd('oops');miss()}
-  function pick(b){if(S.step!=='say'||!S.dateTapped||b.classList.contains('no')||b.classList.contains('amber'))return;const a=S.ans[+b.dataset.i];E.line('fd-a',a.t);
-    if(LEVELS[level].l4){pick4(b,a);return}
-    if(a.ok){S.step='won';const first=!won.has(round);won.add(round);b.classList.add('yes');ansRow.querySelectorAll('.fd-a').forEach(x=>{if(x!==b)x.classList.add('rest')});
-      clearOv(it=>it.style==='glow'||it.style==='amber');bubble('go','Yes!','The date is <b>'+a.t+'</b>.');E.snd('win');
-      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,first?90:40);nextB.hidden=false;skipB.hidden=true;root.classList.add('won');if(first)flyStar(b,round);else stampRow()}
-    else{b.classList.add('no');bubble('amber','Not that one.',a.coach+' Read the date again.');E.snd('oops');miss()}}
+  function pick(b){if(S.step!=='say'||!S.dateTapped||b.classList.contains('no')||b.classList.contains('amber')||(CHK&&performance.now()<S.vready))return;const a=S.ans[+b.dataset.i];E.line('fd-a',a.t);
+    if(CHK)pickV(b,a);else pick4(b,a)}
   /* Level 4 Say it (approved tv-3 and tv-4): the coaching line is inside the answer card; a wrong pick turns amber and the
      parts of the date get small amber tags; the right pick turns green with the Fun Friday check stamp */
   function pick4(b,a){clearSrc();
@@ -930,6 +946,68 @@ function Activity(el,o){
       S.dashOv.forEach(o=>{if(o.ch&&o.ch.face===l.face&&o.ch.line===l.line){o.hide=true;s.hid.push(o)}})}
     kick()}
 
+  /* ---------- step 2, Check it (approved 11/19, layout A): is the date still good? The supports come in only once the date is
+     found, with the game's deal-in, from the most help to the least: on Levels 1 and 2 today's date under the prompt and, on the
+     right, the calendar strip (at most a quarter of the screen wide, the full height: this year's months as little calendar pages
+     with the red bar of the big calendar, then this month); on Levels 3 and 4 the phone with today on it, and Easier or a wrong
+     answer brings the calendar instead. Two big answers, Still good and Expired. A wrong one turns amber, the coaching line in the
+     card says why, and the date is marked on the calendar; the right one gets the star. ---------- */
+  const supCal=()=>CHK&&(level<2||S.full);
+  /* how much of the screen's right side the close look keeps free for the strip or the phone (px) */
+  function chkR(){if(!CHK)return 0;const U=E.u();return supCal()?W()*.25+U*2:U*33}
+  function chkPrompt(){return (supCal()?'Look at today.':'Look at the phone.')+'<br><b>Is it still good?</b>'}
+  function todayHTML(){const T=today;return '<div class="fd-trow"><span class="fd-tlab">TODAY</span><span class="fd-tnum">'+p2(T.getMonth()+1)+'/'+p2(T.getDate())+'/'+p2(T.getFullYear()%100)+'</span></div>'+
+    '<div class="fd-tday">'+WD[T.getDay()]+',<br>'+MONTH[T.getMonth()]+' '+T.getDate()+', '+T.getFullYear()+'</div>'}
+  /* the strip: this year's months (the past ones grey and crossed out, this one outlined in blue), then this month in the game's
+     wall-calendar look (past days crossed out, today boxed). --d = when each piece deals in */
+  function calHTML(){const y=today.getFullYear(),m=today.getMonth(),t=today.getDate(),n=new Date(y,m+1,0).getDate(),first=new Date(y,m,1).getDay(),rows=Math.ceil((first+n)/7);
+    let h='<div class="fd-mblock"><div class="fd-year fd-pop" style="--d:80ms">'+y+'</div><div class="fd-months">';
+    for(let k=0;k<12;k++)h+='<span class="fd-m fd-pop '+(k<m?'past':k===m?'now':'next')+'" data-m="'+k+'" style="--d:'+(148+k*38)+'ms"><span class="fd-bar"><i>'+MON[k]+'</i></span><b>'+(k+1)+'</b></span>';
+    h+='</div></div><div class="fd-big fd-pop" style="--d:640ms"><div class="l1"><div class="cal l1c'+(rows>5?' six':'')+'"><div class="calhead">'+MONTH[m].toUpperCase()+'</div><div class="wk">'+
+      ['SUN','MON','TUE','WED','THU','FRI','SAT'].map(s=>'<span>'+s+'</span>').join('')+'</div><div class="days">';
+    for(let k=0;k<rows*7;k++){const dn=k-first+1;if(dn<1||dn>n){h+='<span class="d blank"></span>';continue}
+      h+='<span class="d'+(dn<t?' past':dn===t?' today':'')+'" data-d="'+dn+'"><i>'+dn+'</i>'+(dn===t?'<small>TODAY</small>':'')+'</span>'}
+    return h+'</div></div></div></div>'}
+  /* the game's phone (its classes), with today and the clock */
+  function phoneHTML(){const T=today;return '<div class="phonewrap"><div class="phone" role="img" aria-label="Phone: today is '+WD[T.getDay()]+', '+MONTH[T.getMonth()]+' '+T.getDate()+', '+T.getFullYear()+'.">'+
+    '<div class="scr"><div class="pdate">'+WD[T.getDay()]+',<br>'+MONTH[T.getMonth()]+' '+T.getDate()+'<br>'+T.getFullYear()+'</div><div class="ptime">'+E.clock()+'</div>'+PICONS+'</div></div></div>'}
+  function tickPhone(){const k=++S.tick;later(15000,()=>{const t=phoneEl.querySelector('.ptime');if(k!==S.tick||!t||phoneEl.hidden)return;t.textContent=E.clock();tickPhone()})}
+  /* a past month is crossed out corner to corner, whatever the shape of its page */
+  function crossFit(){const m0=calEl.querySelector('.fd-m');if(!m0||!m0.offsetWidth)return;const w=m0.offsetWidth,h=m0.offsetHeight;
+    calEl.style.setProperty('--xa',Math.atan2(h,w)+'rad');calEl.style.setProperty('--xw',(Math.hypot(w,h)*.78)+'px')}
+  function vHTML(){const d0=supCal()?920:380;return S.ans.map((a,n)=>'<button class="choice fd-v '+a.k+'" data-i="'+n+'" style="--d:'+(d0+n*70)+'ms"><span class="ic">'+(a.k==='good'?OKI:XI)+'</span>'+a.t+'</button>').join('')}
+  /* lay the supports out unseen while the camera glides in, so the close look can keep clear of them */
+  function supLay(){const cal=supCal();root.classList.add('chk');root.classList.toggle('cal',cal);root.classList.toggle('ph',!cal);root.classList.remove('go-in');
+    todayEl.hidden=calEl.hidden=!cal;phoneEl.hidden=cal;todayEl.innerHTML=cal?todayHTML():'';calEl.innerHTML=cal?calHTML():'';phoneEl.innerHTML=cal?'':phoneHTML();
+    calEl.setAttribute('aria-label','Calendar: today is '+WD[today.getDay()]+', '+MONTH[today.getMonth()]+' '+today.getDate()+', '+today.getFullYear()+'. Past days and months are crossed out.');
+    [todayEl,calEl,phoneEl].forEach(e=>e.classList.add('pre'));todayEl.classList.add('fd-pop');phoneEl.classList.add('fd-pop');if(cal)crossFit();
+    answers.classList.remove('fd-pop');answers.style.setProperty('--d',cal?'840ms':'300ms')}
+  /* ...and pop them in once the date is found: today, the months, this month, the answer card, the answers */
+  function supPop(){const still=E.still(),cal=supCal();S.sup=true;root.classList.toggle('fd-still',still);[todayEl,calEl,phoneEl].forEach(e=>e.classList.remove('pre'));
+    answers.classList.remove('wait');answers.classList.add('fd-pop');root.classList.add('go-in');S.vready=performance.now()+(still?0:cal?1040:500);
+    const bs=[...ansRow.querySelectorAll('.fd-v')];bs.forEach(b=>{b.onclick=()=>pick(b);if(still)b.classList.add('dealt')});
+    later(still?0:(cal?990:450)+460,()=>bs.forEach(b=>b.classList.add('dealt')));later(still?0:160,()=>E.snd('plop'));if(!cal)tickPhone();
+    if(level>=2&&S.easy!==S.full){if(S.easy)supFull();else supBack()}if(S.easy)markDate('hint')}
+  /* Levels 3 and 4: the calendar comes in for the phone (Easier, or a wrong answer), or the phone comes back (Easier off) */
+  function supFull(){S.full=true;supSwap()}
+  function supBack(){S.full=false;supSwap()}
+  function supSwap(){const cal=supCal();root.classList.toggle('cal',cal);root.classList.toggle('ph',!cal);prompt.innerHTML=chkPrompt();
+    todayEl.hidden=calEl.hidden=!cal;phoneEl.hidden=cal;[todayEl,calEl,phoneEl].forEach(e=>e.classList.remove('pre'));
+    if(cal){todayEl.innerHTML=todayHTML();calEl.innerHTML=calHTML();crossFit();markDate(S.mark)}else{phoneEl.innerHTML=phoneHTML();tickPhone()}
+    E.snd('plop');moveTo(S.qSay,sayView(S.qSay),450)}
+  /* the date on the calendar: Easier points at it in the game's sun yellow (the hint look of its calendar); after an answer it takes
+     the answer's colour (red: before today, expired; green: after today, still good). Another month: its page; this month: its day */
+  function markDate(kind){calEl.querySelectorAll('.mark').forEach(e=>{e.classList.remove('mark','hint','bad','good');const f=e.querySelector('.fd-flag');if(f)f.remove()});
+    S.mark=kind||'';if(!kind||!RD.date||calEl.hidden||RD.date.getFullYear()!==today.getFullYear())return;const d=RD.date;
+    const e=d.getMonth()===today.getMonth()?calEl.querySelector('.fd-big .d[data-d="'+d.getDate()+'"]'):calEl.querySelector('.fd-m[data-m="'+d.getMonth()+'"]');
+    if(e){e.classList.add('mark',kind);e.insertAdjacentHTML('beforeend','<span class="fd-flag">the date</span>')}}
+  function pickV(b,a){const g=RD.good,why='<b class="'+(g?'go':'stop')+'">'+RD.say+'</b> is '+(g?'after':'before')+' today.<br>It is '+(g?'still good':'expired')+'.';
+    ansRow.querySelectorAll('.fd-v').forEach(x=>x.classList.add('dealt'));
+    if(a.ok){S.step='won';const first=!won.has(round);won.add(round);b.classList.add('yes');ansRow.querySelectorAll('.fd-v').forEach(x=>{if(x!==b){x.classList.remove('amber');x.classList.add('rest')}});
+      clearOv(it=>it.style==='glow'||it.style==='amber');qqEl.className='fd-qq fd-why go';qqEl.innerHTML='<span class="t">You got it!</span> '+why;markDate(g?'good':'bad');E.snd('win');
+      const r=b.getBoundingClientRect();E.boom(r.left+r.width/2,r.top+r.height/2,first?90:40);nextB.hidden=false;skipB.hidden=true;root.classList.add('won');if(first)flyStar(b,round);else stampRow()}
+    else{b.classList.add('amber');S.missed=true;qqEl.className='fd-qq fd-why';qqEl.innerHTML='Look again. '+why;if(!supCal())supFull();markDate(g?'good':'bad');E.snd('oops');miss()}}
+
   /* ---------- level done: the game's level-done page, the Fun Friday party, the game-show win when every round was won ---------- */
   function stopBig(){if(bigWinOn){E.stopWin();bigWinOn=false}}
   function showDone(){clearTimers();tw=null;PH.spin=null;PH.held=false;E.quiet();const n=level+1;doneV.hidden=false;
@@ -958,7 +1036,7 @@ function Activity(el,o){
   let rzT=0;
   function onResize(){clearTimeout(rzT);rzT=setTimeout(()=>{if(!alive||!P)return;renderer.setSize(W(),H(),false);cam.aspect=W()/H();cam.updateProjectionMatrix();const f=tw&&tw.done;tw=null;
     if(S.qSay){pivot.quaternion.copy(S.qSay);setView(sayView(S.qSay))}else{pivot.quaternion.copy(S.q);setView(poseView(S.q,S.zoom))}
-    draw();if(S.src&&S.src.parts)veil();if(f)f();handHint()},120)}
+    draw();if(S.src&&S.src.parts)veil();if(!calEl.hidden)crossFit();if(f)f();handHint()},120)}
   addEventListener('resize',onResize);const onVis=()=>kick();document.addEventListener('visibilitychange',onVis);
   function exit(){stop();onExit()}
   function destroy(){alive=false;clearTimers();clearTimeout(rzT);if(raf)cancelAnimationFrame(raf);raf=0;tw=null;removeEventListener('keydown',onKey);removeEventListener('resize',onResize);document.removeEventListener('visibilitychange',onVis);PH.spin=null;PH.held=false;
@@ -966,10 +1044,11 @@ function Activity(el,o){
     try{renderer.dispose();renderer.forceContextLoss()}catch(e){}const c=renderer.domElement;c.width=c.height=1;el.innerHTML=''}
 
   /* ---------- for tests only: read the state and find where things are on the screen ---------- */
-  const test={state:()=>({level,round,step:S.step,misses:S.misses,easy:S.easy,zoom:S.zoom,won:[...won],dateTapped:S.dateTapped,busy:!!tw||S.step==='move'||!!PH.spin||PH.held||Math.abs(PH.dip)>.002||Math.abs(PH.dv)>.01,ph:{dbg:PH.dbg||'',dip:+PH.dip.toFixed(4),spin:PH.spin?+Math.hypot(PH.spin.vs,PH.spin.vt).toFixed(3):0,held:PH.held,float:floatOn()},fit:S.fitInfo,fitDbg:S.fitDbg,say:S.sayInfo,zoomInfo:S.zoomInfo,closer:S.zoom?(S.zoomFocus?'framed':'1.7x'):'',
+  const test={state:()=>({level,round,step:S.step,misses:S.misses,easy:S.easy,zoom:S.zoom,won:[...won],dateTapped:S.dateTapped,busy:!!tw||S.step==='move'||(S.step==='say'&&CHK&&performance.now()<S.vready)||!!PH.spin||PH.held||Math.abs(PH.dip)>.002||Math.abs(PH.dv)>.01,ph:{dbg:PH.dbg||'',dip:+PH.dip.toFixed(4),spin:PH.spin?+Math.hypot(PH.spin.vs,PH.spin.vt).toFixed(3):0,held:PH.held,float:floatOn()},fit:S.fitInfo,fitDbg:S.fitDbg,say:S.sayInfo,zoomInfo:S.zoomInfo,closer:S.zoom?(S.zoomFocus?'framed':'1.7x'):'',
       tilt:tiltOf(S.q),q:S.q.toArray().map(v=>+v.toFixed(4)),date:RD&&RD.ds,right:RD&&RD.spoken,choices:S.ans&&S.ans.map(a=>a.t),bubble:hudR.textContent,card:qqEl.textContent,spot:P&&P.spot,
       src:S.src?(S.src.amber?'amber:'+(S.src.amber.ch?S.src.amber.ch.k:S.src.amber.rg.what):'parts:'+S.src.parts.length+' veils:'+S.src.veils.length):'',
-      tags:[...root.querySelectorAll('.fd-tag')].filter(t=>t.style.display!=='none').map(t=>t.textContent+(t.classList.contains('amber')?'*':''))}),
+      tags:[...root.querySelectorAll('.fd-tag')].filter(t=>t.style.display!=='none').map(t=>t.textContent+(t.classList.contains('amber')?'*':'')),
+      check:CHK,good:RD?RD.good:null,sup:CHK&&S.step!=='find'?(supCal()?'calendar':'phone'):'',mark:[...calEl.querySelectorAll('.mark')].map(e=>(e.dataset.m?'month '+(+e.dataset.m+1):'day '+e.dataset.d)+' '+S.mark).join(',')}),
     /* the gentle bob on or off (long test runs on a slow test machine turn it off; it never changes what a tap hits) */
     float(on){PH.noFloat=!on;kick();return floatOn()},
     /* the screen point of a part, with how squarely it faces the camera: 'line:ok', 'line:bad', 'reg:price', 'chunk:date' ... */
@@ -985,7 +1064,7 @@ function Activity(el,o){
       pivot.quaternion.copy(q0);pivot.updateMatrixWorld(true);
       /* the fewest turns among the poses that show it nearly as well as the best one */
       const top=Math.max(...best.map(o=>o.d));return best.filter(o=>o.d>=top-.04).sort((a,b)=>Math.abs(a.k)+Math.abs(a.t)-Math.abs(b.k)-Math.abs(b.t))[0]},
-    spin,tip,closer,rounds:()=>ROUNDS.map(r=>({date:r.ds,pk:r.rd.pk,spot:r.rd.spot,choices:r.choices.map(c=>(c.ok?'*':'')+c.t)})),
+    spin,tip,closer,rounds:()=>ROUNDS.map(r=>({date:r.ds,pk:r.rd.pk,spot:r.rd.spot,good:r.good,day:r.date?r.date.getFullYear()+'-'+p2(r.date.getMonth()+1)+'-'+p2(r.date.getDate()):null,choices:r.choices.map(c=>(c.ok?'*':'')+c.t)})),
     faces:()=>P?Object.fromEntries(Object.entries(P.faces).map(([n,f])=>[n,f.c.toDataURL('image/png')])):null};
   return{begin(){startLevel(level,round)},destroy,test}
 }
