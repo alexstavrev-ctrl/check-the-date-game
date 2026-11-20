@@ -36,9 +36,14 @@ const p2 = n => String(n).padStart(2,'0');
 const FIND = 'Find the date<br><b>to check.</b>';
 /* the package pictures (Canva, colored-pencil picture-book style, cut out to transparent webp; classroom-assets group
    find-packages, ids find-pkg.<name>). trim = the solid part of the picture in its 600 px file. kit.art draws it. */
-export const art = {};   /* filled in as the pictures land, e.g. peanuts: {file: 'peanuts.webp', trim: [x0, y0, x1, y1]}.
-   Names: peanuts, turkey, oranges, crackers, pasta, cow-jug. Until a picture is listed (or if it fails to load), the package
-   draws a plain flat stand-in in its place. */
+export const art = {
+  peanuts: {file: 'peanuts.webp', trim: [27, 49, 574, 252]},
+  turkey: {file: 'turkey.webp', trim: [28, 62, 574, 389]},
+  oranges: {file: 'oranges.webp', trim: [37, 50, 560, 248]},
+  crackers: {file: 'crackers.webp', trim: [13, 72, 588, 224]},
+  pasta: {file: 'pasta.webp', trim: [6, 75, 594, 218]},
+  'cow-jug': {file: 'cow-jug.webp', trim: [68, 14, 502, 291]}};   /* a picture that fails to load is skipped: the package draws a
+   plain flat stand-in in its place */
 /* Nutrition Facts for kit.nfacts: {serv, size, cal, rows: [[name, amount, %, indent, bold]], vit: [[name, amount, %]]} */
 const PB_NF = {serv: 'about 15 servings per container', size: '2 Tbsp (32g)', cal: '190',
   rows: [['Total Fat', '16g', '21%'], ['Saturated Fat', '3g', '15%', 1, false], ['Trans Fat', '0g', '', 1, false], ['Cholesterol', '0mg', '0%'], ['Sodium', '140mg', '6%'],
@@ -313,7 +318,7 @@ export function rounds(kit, {today, rand}) {
       rr(lx, lc, FX - 14, 58.6, 28, 6.4, 3.2, GREEN); pt(lx, lc, 'NO PULP', FX, 61.9, 3.8, '#FFFFFF', {w: 900, n: true, ls: .06});
       fit(lx, lc, 'oranges', FX - 3, 82.5, 72, 31, () => { for (const [cx, cy, r] of [[FX - 10, 83, 13.5], [FX + 12, 85, 12]]) { lx.fillStyle = '#F39A1E'; lx.strokeStyle = '#C96A0C'; lx.lineWidth = k * .6; lx.beginPath(); lx.arc(cx * k, cy * k, r * k, 0, 7); lx.fill(); lx.stroke(); lx.fillStyle = 'rgba(255,255,255,.35)'; lx.beginPath(); lx.ellipse((cx - r * .35) * k, (cy - r * .4) * k, r * .3 * k, r * .18 * k, -.6, 0, 7); lx.fill(); }
         lx.fillStyle = '#3E9F52'; lx.beginPath(); lx.ellipse((FX - 3) * k, 70 * k, 7 * k, 3 * k, -.5, 0, 7); lx.fill(); });
-      const prc = priceDot(lx, lc, FX + 39, 76, 7.4, '$4.79');
+      const prc = priceDot(lx, lc, FX + 36, 62.5, 7.2, '$4.79');
       const sz = pt(lx, lc, '52 FL OZ (1.62 QT) 1.53 L', FX, 113.4, 4.5, '#FFFFFF', {w: 900, n: true});
       /* the two sides */
       pt(lx, lc, 'Not from concentrate', FX + 79, 60, 3.6, GREEN, {w: 900, n: true, max: 36});
@@ -444,7 +449,7 @@ export function rounds(kit, {today, rand}) {
         const nm = pt(x, c, 'Spaghetti', 80, 18.6, 21, '#FFFFFF', {w: 800, a: 'left', max: 170});
         rr(x, c, 80, 33, 174, 28, 8, CREAM);
         x.save(); x.beginPath(); x.roundRect(80 * c.k, 33 * c.k, 174 * c.k, 28 * c.k, 8 * c.k); x.clip();
-        fit(x, c, 'pasta', 167, 47, 170, 30, () => { x.strokeStyle = '#E3B85B'; x.lineWidth = c.k * .9; for (let i = 0; i < 24; i++) { const y = (38 + i * .8) * c.k; x.beginPath(); x.moveTo(90 * c.k, y); x.lineTo(244 * c.k, y + c.k * (i % 3 - 1)); x.stroke(); } });
+        fit(x, c, 'pasta', 167, 47, 170, 34, () => { x.strokeStyle = '#E3B85B'; x.lineWidth = c.k * .9; for (let i = 0; i < 24; i++) { const y = (38 + i * .8) * c.k; x.beginPath(); x.moveTo(90 * c.k, y); x.lineTo(244 * c.k, y + c.k * (i % 3 - 1)); x.stroke(); } });
         x.restore();
         const pr = priceDot(x, c, 40, 55, 7.2, '$1.79');
         return [['name', nm], ['weight', wt], ['price', pr]]; });
@@ -514,7 +519,7 @@ export function rounds(kit, {today, rand}) {
       wx.fillStyle = RED; wx.fillRect((FX - 62) * k, 84 * k, 124 * k, 28 * k);
       pt(wx, wc, 'VITAMIN D', FX, 89.6, 4.8, '#FFE3DF', {w: 900, n: true, ls: .12});
       const nm = pt(wx, wc, 'WHOLE MILK', FX, 102.2, 15, '#FFFFFF', {w: 800, max: 116});
-      fit(wx, wc, 'cow-jug', FX - 6, 135.5, 92, 38, () => { wx.fillStyle = '#7FB65A'; wx.beginPath(); wx.ellipse((FX - 6) * k, 150 * k, 46 * k, 7 * k, 0, 0, 7); wx.fill();
+      fit(wx, wc, 'cow-jug', FX - 6, 136, 92, 42, () => { wx.fillStyle = '#7FB65A'; wx.beginPath(); wx.ellipse((FX - 6) * k, 150 * k, 46 * k, 7 * k, 0, 0, 7); wx.fill();
         wx.fillStyle = '#C8392E'; wx.fillRect((FX - 22) * k, 128 * k, 26 * k, 20 * k); wx.beginPath(); wx.moveTo((FX - 25) * k, 129 * k); wx.lineTo((FX - 9) * k, 118 * k); wx.lineTo((FX + 7) * k, 129 * k); wx.closePath(); wx.fill();
         wx.strokeStyle = '#FFFFFF'; wx.lineWidth = k * 1; wx.strokeRect((FX - 14) * k, 136 * k, 10 * k, 12 * k); wx.beginPath(); wx.moveTo((FX - 14) * k, 136 * k); wx.lineTo((FX - 4) * k, 148 * k); wx.moveTo((FX - 4) * k, 136 * k); wx.lineTo((FX - 14) * k, 148 * k); wx.stroke(); });
       const prc = priceDot(wx, wc, FX + 47, 128, 8, '$4.29');
@@ -529,7 +534,7 @@ export function rounds(kit, {today, rand}) {
       para(wx, wc, [['Valley Fresh Dairy', true], [' Tulare, CA 93274', false]], RX - 28, ing[3] / k + 3, 56, 3, '#2a2a33');
       recycle(wx, wc, RX, 122, 7, NAVY); pt(wx, wc, 'PLEASE RECYCLE', RX, 133.5, 3.4, NAVY, {w: 900, n: true});
       /* the back (the jug starts turned this way): the brand again, over the seam of the canvas */
-      for (const cx of [0, per]) { brand(cx, 104, 10); pt(wx, wc, 'From local family farms', cx, 115, 4, NAVY, {w: 900, n: true}); fit(wx, wc, 'cow-jug', cx, 136, 64, 26); }
+      for (const cx of [0, per]) { brand(cx, 104, 10); pt(wx, wc, 'From local family farms', cx, 115, 4, NAVY, {w: 900, n: true}); fit(wx, wc, 'cow-jug', cx, 140, 64, 32); }
       /* canvas px -> point on the jug: invert the length round the jug */
       const bodyMap = (px, py) => { const u = px / wc.width, y = HS * (1 - py / wc.height); let lo = 0, hi = SEG; while (hi - lo > 1) { const mi = (lo + hi) >> 1; if (uu[mi] <= u) lo = mi; else hi = mi; }
         const f = (u - uu[lo]) / ((uu[hi] - uu[lo]) || 1), t = ths[lo] + (ths[hi] - ths[lo]) * f, r = rAt(t, y); return V(MM(r * Math.sin(t)), MM(y), MM(r * Math.cos(t))); };

@@ -3,7 +3,7 @@
  "game": "check-the-date-game",
  "library": {
   "repo": "alexstavrev-ctrl/classroom-assets",
-  "commit": "4ef31bb147c0dc24026b15df30c42f444c00874e"
+  "commit": "13e18b5dea8d06661c0f4c7a18f0fdfd5068ac31"
  },
  "approved_baseline": {},
  "note": "Every picture, sound and font in this game must be listed here and come from classroom-assets. Run assets.py check before every publish.",
@@ -159,6 +159,30 @@
    "ref": "cereal-bowl.webp",
    "screens": "Find the Date!: the Bright Morning cereal box (front, and small at the end of the maze on the back), Levels 1 to 3"
   },
+  "find/art/cow-jug.webp": {
+   "asset": "find-pkg.cow-jug",
+   "version": 1,
+   "lib": "images/find-packages/web/cow-jug.webp",
+   "sha256": "a473ddbdba835c3c7c0c6bbcf3488cf0a2cf2467f9863c85a765336ea694d4b9",
+   "px": [
+    600,
+    300
+   ],
+   "ref": "cow-jug.webp",
+   "screens": "Find the Date!: the Valley Fresh gallon of milk (front label and back), Level 4 round 6"
+  },
+  "find/art/crackers.webp": {
+   "asset": "find-pkg.crackers",
+   "version": 1,
+   "lib": "images/find-packages/web/crackers.webp",
+   "sha256": "eb2c5e64409e76b4eee9cfee4f680a02c11917f4d159b9ccdd985c6e12d3e749",
+   "px": [
+    600,
+    300
+   ],
+   "ref": "crackers.webp",
+   "screens": "Find the Date!: the Prairie Mill crackers box (front), Level 4 round 4"
+  },
   "find/art/milk-cow.webp": {
    "asset": "find-pkg.milk-cow",
    "version": 1,
@@ -171,6 +195,42 @@
    "ref": "milk-cow.webp",
    "screens": "Find the Date!: the Sunny Fields milk carton (front), Levels 1 to 3"
   },
+  "find/art/oranges.webp": {
+   "asset": "find-pkg.oranges",
+   "version": 1,
+   "lib": "images/find-packages/web/oranges.webp",
+   "sha256": "6bdde4686a9e90164f7a72826bf35f489b439875536b5aaa5a77c6e5a19cc9b7",
+   "px": [
+    600,
+    300
+   ],
+   "ref": "oranges.webp",
+   "screens": "Find the Date!: the Sun Grove orange juice bottle (front label), Level 4 round 3"
+  },
+  "find/art/pasta.webp": {
+   "asset": "find-pkg.pasta",
+   "version": 1,
+   "lib": "images/find-packages/web/pasta.webp",
+   "sha256": "4bb2b59f331192b5256a59767c0ee5763f220ae5f655bf93a6c67055e1bf4e79",
+   "px": [
+    600,
+    300
+   ],
+   "ref": "pasta.webp",
+   "screens": "Find the Date!: the Casa Bella spaghetti box (front window), Level 4 round 5"
+  },
+  "find/art/peanuts.webp": {
+   "asset": "find-pkg.peanuts",
+   "version": 1,
+   "lib": "images/find-packages/web/peanuts.webp",
+   "sha256": "ee3a35357f2f47789edc486b3d45ff8267287bd61033d2155ca1c82c2bcc7430",
+   "px": [
+    600,
+    300
+   ],
+   "ref": "peanuts.webp",
+   "screens": "Find the Date!: the Sunny Acres peanut butter jar (front label), Level 4 round 1"
+  },
   "find/art/soup-bowl.webp": {
    "asset": "find-pkg.soup-bowl",
    "version": 1,
@@ -182,6 +242,18 @@
    ],
    "ref": "soup-bowl.webp",
    "screens": "Find the Date!: the Simmer & Spoon soup can (front of the label), Levels 1 to 3"
+  },
+  "find/art/turkey.webp": {
+   "asset": "find-pkg.turkey",
+   "version": 1,
+   "lib": "images/find-packages/web/turkey.webp",
+   "sha256": "048f162b08f23a3eb86ebab45022ef7e8cd7216d56465e955d3c84686a90164c",
+   "px": [
+    600,
+    450
+   ],
+   "ref": "turkey.webp",
+   "screens": "Find the Date!: the Hilltop Grocer deli turkey tray (the slices under the film), Level 4 round 2"
   }
  },
  "inline": [],
